@@ -1,5 +1,6 @@
-from dispatcher import bot
-from main import botDB
+from system.dispatcher import bot
+from system.main import botDB
+from aiogram import types
 
 @bot.message_handler(commands="start")
 async def start(message: types.Message):

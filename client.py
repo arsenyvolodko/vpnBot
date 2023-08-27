@@ -1,4 +1,5 @@
 import subprocess
+import qrcode
 
 
 def generate_keys():
@@ -33,21 +34,29 @@ def generate_next_ip(last_ip: str):
     return new_ipv4, new_ipv6
 
 
+def make_qr_code_png(file_data, file_name):
+    img = qrcode.make(file_data)
+    img.save(f"client_files/{file_name}")
 
 
 def create_client_config_file(file_name: str, private_key, preshared_key: str, new_ips: list):
-    with open (f'client_files/{file_name}.conf', 'w') as file:
-        file.write('[Interface]\n')
-        file.write(f'PrivateKey = {private_key}\n')
-        file.write(f'Address = {new_ips[0]}, {new_ips[1]}\n')
-        file.write('DNS = 1.1.1.1, 1.0.0.1\n')
-        file.write('\n')
-        file.write('[Peer]\n')
-        file.write('PublicKey = IzVzdvd3012NmM4wBeUNnbUyukPtroX4oScY/2YFlU4=\n')
-        file.write(f'PresharedKey = {preshared_key}\n')
-        file.write('Endpoint = 91.201.113.17:63906\n')
-        file.write('AllowedIPs = 0.0.0.0/0, ::/0\n')
+    file_data = ''
+    file_data += '[Interface]\n'
+    file_data += f'PrivateKey = {private_key}\n'
+    file_data += f'Address = {new_ips[0]}, {new_ips[1]}\n'
+    file_data += 'DNS = 1.1.1.1, 1.0.0.1\n'
+    file_data += '\n'
+    file_data += '[Peer]\n'
+    file_data += 'PublicKey = IzVzdvd3012NmM4wBeUNnbUyukPtroX4oScY/2YFlU4=\n'
+    file_data += f'PresharedKey = {preshared_key}\n'
+    file_data += 'Endpoint = 91.201.113.17:63906\n'
+    file_data += 'AllowedIPs = 0.0.0.0/0, ::/0\n'
+
+    with open(f'client_files/{file_name}.conf', 'w') as file:
+        file.write(file_data)
         file.close()
+
+    make_qr_code_png(file_data, file_name + '_qr.png')
 
 
 def update_server_config_file(client_name: str, public_key: str, preshared_key: str, new_ips: list):
@@ -72,5 +81,4 @@ def add_client(client_name: str, last_ip: str):
 
 
 last_ip = '10.66.66.10'
-last_val_ip = last_ip
 last_ip = add_client(f'client{11}', last_ip)[0].strip('./32')
