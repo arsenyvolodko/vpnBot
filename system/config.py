@@ -2,7 +2,7 @@ TOKEN = '6693022227:AAEiYjqds3y4W_AQIS5UKSr78fJndgQMgD0'
 
 host_db = 'ep-odd-leaf-17942658.us-east-2.aws.neon.tech'
 port_db = '5432'
-database = 'neondb'
+database = 'ample-mollusk-75_db_8850180'
 user_db = 'arsenyvolodko'
 password_db = 'bys8f1SqaKMd'
 
