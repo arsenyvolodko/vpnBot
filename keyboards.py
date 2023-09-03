@@ -14,6 +14,11 @@ def get_main_menu_keyboard():
     keyboard.add(get_button(FINANCE_TEXT, FINANCE_CALLBACK))
     return keyboard
 
+def get_back_to_previous_menu(callback: str):
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, callback))
+    return keyboard
+
 
 def get_devices_keyboard(user_id: int):
     keyboard = types.InlineKeyboardMarkup()
@@ -22,7 +27,7 @@ def get_devices_keyboard(user_id: int):
     for i in devices:
         keyboard.add(get_button(f"Устройство №{i}", f"specific_device_callback#{i}"))
     if len(devices) == 0:
-        keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_FIRST_DEVICE_CALLBACK))
+        keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
     elif len(devices) < 3:
         keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
     keyboard.add(BACK_TO_MAIN_MENU_BTN)
@@ -31,7 +36,8 @@ def get_devices_keyboard(user_id: int):
 
 def get_add_device_confirmation_keyboard():
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(get_button(BACK_TO_MAIN_MENU_TEXT, DEVICES_CALLBACK), get_button(CONTINUE_TEXT, ADD_FIRST_DEVICE_CONFIRMED_CALLBACK))
+    keyboard.add(get_button(BACK_TO_MAIN_MENU_TEXT, DEVICES_CALLBACK),
+                 get_button(CONTINUE_TEXT, ADD_DEVICE_CONFIRMED_CALLBACK))
     return keyboard
 
 
@@ -62,3 +68,13 @@ def get_back_to_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(BACK_TO_MAIN_MENU_BTN)
     return keyboard
+
+
+def get_finance_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(get_button(PAYMENTS_HISTORY_TEXT, PAYMENTS_HISTORY_CALLBACK))
+    keyboard.add(get_button(FILL_UP_TEXT, FILL_UP_CALLBACK))
+    keyboard.add(BACK_TO_MAIN_MENU_BTN)
+    return keyboard
+
+

@@ -13,15 +13,8 @@ class Files:
 
 
     @classmethod
-    def get_user_id_from_client_name(cls, client_name: str, string_type: bool = False):
-        if string_type:
-            return client_name.split('_')[0]
-        return int(client_name.split('_')[0])
-
-
-    @classmethod
     def create_client_config_file(cls, client: Client):
-        file_data = cls.gen_data_for_server_config_file(client)
+        file_data = cls.gen_data_for_client_config_file(client)
 
         base_path = f'client_files/{client.user_id}_{client.device_num}'
         config_file_path = f'{base_path}.conf'
