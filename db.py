@@ -65,11 +65,13 @@ class BotDB:
     def update_balance(self, user_id: int, new_balance: float):
 
         if new_balance < 0:
-            raise NotEnoughMoneyError(f"Incorrect balance value: {new_balance}")
+            return False
+            # raise NotEnoughMoneyError(f"Incorrect balance value: {new_balance}")
 
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("UPDATE balance_table SET balance = %s WHERE user_id = %s", (new_balance, user_id))
             self.conn.commit()
+        return True
 
     def get_balance(self, user_id: int):
         with self.conn, self.conn.cursor() as cursor:
@@ -98,9 +100,11 @@ class BotDB:
 
     def get_user_devices(self, user_id: int):
         with self.conn, self.conn.cursor() as cursor:
-            cursor.execute("SELECT device_num FROM clients WHERE user_id = %s ORDER BY device_num", (user_id,))
+            cursor.execute("SELECT device_num, active FROM clients WHERE user_id = %s ORDER BY device_num", (user_id,))
             result = cursor.fetchall()
-        return list(map(lambda x: int(x[0]), result))
+            print(result)
+        return result
+        # return list(map(lambda x: int(x[0]), result))
 
     def get_client(self, user_id: int, device_num: int):  # throws NoSuchClientExistsError
         with self.conn, self.conn.cursor() as cursor:
@@ -120,17 +124,42 @@ class BotDB:
                            (new_date, user_id, device_num))
             self.conn.commit()
 
-    def get_clients_to_pay(self, cur_date: str):
+    def get_clients_to_pay(self, date: str):
+        return self.__get_clients_to_pay_or_delete(date, 1, True)
+
+    def get_clients_to_delete(self, date: str):
+        return self.__get_clients_to_pay_or_delete(date, 0, False)
+
+    def __get_clients_to_pay_or_delete(self, date: str, active: int, strict: bool):
         with self.conn, self.conn.cursor() as cursor:
-            cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date = %s", (cur_date, ))
-            result = cursor.fetchall()
+            if strict:
+                cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date = %s and active = %s", (date, active))
+                result = cursor.fetchall()
+            else:
+                cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date <= %s and active = %s", (date, active))
+                result = cursor.fetchall()
         return result
 
-    def deactivate_client(self, user_id: int, device_num: int):
+
+    def get_client_ip(self, user_id: int, device_num: int):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute(f"SELECT ipv4 FROM clients WHERE user_id = %s and device_num = %s", (user_id, device_num))
+            result = cursor.fetchone()
+        return result[0]
+
+
+
+    def change_client_activity(self, user_id: int, device_num: int, new_active_value: int):
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("UPDATE clients SET active = %s WHERE user_id = %s and device_num = %s",
-                           (0, user_id, device_num))
+                           (new_active_value, user_id, device_num))
             self.conn.commit()
+
+    def check_if_active(self, user_id: int, device_num: int):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute(f"SELECT active FROM clients WHERE user_id = %s and device_num = %s", (user_id, device_num))
+            result = cursor.fetchone()
+        return result[0]
 
     ### FREE_IP DATABASE
 
@@ -146,13 +175,16 @@ class BotDB:
             result = cursor.fetchone()
         return bool(result)
 
-    async def add_free_ips(self, ips: Ips):
-        if not self.ip_exists_in_clients(ips) and not self.ip_exists_in_free_ips(ips):
-            with self.conn, self.conn.cursor() as cursor:
-                cursor.execute("INSERT INTO free_ips (ipv4) VALUES (%s)", (ips.get_ipv4(True),))
-                self.conn.commit()
-                print('added')
-                return True
+    def add_free_ips(self, ips: Ips):
+        if not self.ip_exists_in_clients(ips):
+            print("not in clients")
+            if not self.ip_exists_in_free_ips(ips):
+                print("not in free ip's")
+                with self.conn, self.conn.cursor() as cursor:
+                    cursor.execute("INSERT INTO free_ips (ipv4) VALUES (%s)", (ips.get_ipv4(True),))
+                    self.conn.commit()
+                    print('added')
+                    return True
         else:
             return False
 

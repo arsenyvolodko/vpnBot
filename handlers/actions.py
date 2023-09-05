@@ -32,6 +32,7 @@ async def start(message: types.Message):
 
 @bot.message_handler(commands="devices")
 async def devices(message: types.Message):
+    botDB.get_user_devices(message.from_user.id)
     await check_payment_day()
 
 
@@ -39,7 +40,8 @@ def check_devices_num(user_id: int):
     devices = botDB.get_user_devices(user_id)
     if len(devices) == 3:
         return False
-    new_device_num = 1 if len(devices) == 0 else max(devices) + 1
+    devices_nums = [i[0] for i in devices]
+    new_device_num = 1 if len(devices) == 0 else max(devices_nums) + 1
     return new_device_num
 
 
@@ -112,7 +114,7 @@ def update_clients_end_date(user_id, extend_devices: list):
 
 def deactivate_devices(user_id: int, devices: list):
     for device_num in devices:
-        botDB.deactivate_client(user_id, device_num)
+        botDB.change_client_activity(user_id, device_num, 0)
         client = botDB.get_client(user_id, device_num)
         Files.remove_client(client)
         print("deactive_client:", client)
@@ -177,7 +179,6 @@ async def check_users_balances_for_subscription(user_device_map: dict):
         user_balance = botDB.get_balance(user)
         print(f'user: {user}, balance: {user_balance}')
         devices_amount = int(user_balance // PRICE)
-        # print(devices_amount)
         extend_devices = user_devices[:devices_amount]
         turn_off_devices = []
         if devices_amount < len(user_devices):
@@ -186,15 +187,27 @@ async def check_users_balances_for_subscription(user_device_map: dict):
         await extend_subscription(user, extend_devices, turn_off_devices)
 
 
+async def delete_clients_by_end_date(clients_to_delete):
+    for i in clients_to_delete:
+        user_id, device_num = i
+        ip = Ips(botDB.get_client_ip(user_id, device_num))
+        botDB.remove_client_from_db(user_id, device_num)
+        added = botDB.add_free_ips(ip)
+        print(added)
+        await bot.bot.send_message(chat_id=user_id, text=f"Устройство №{device_num} удалено, поскольку было неактивно в течение 2х месяцев")
+
+
 async def check_payment_day():
     cur_date = datetime.now().date().strftime("%Y-%m-%d")
-    result = botDB.get_clients_to_pay(cur_date)
-    print(result)
-    '''[(506954303, 2), (506954303, 1), (506954305, 2)]'''
-    if len(result) == 0:
+    clients_to_pay = botDB.get_clients_to_pay(cur_date)
+    clients_to_delete = botDB.get_clients_to_delete(get_next_date(cur_date, -2))
+    print("clients to delete: ", clients_to_delete)
+    await delete_clients_by_end_date(clients_to_delete)  # todo check if works
+    if len(clients_to_pay) == 0:
+        print("no clients to pay")
         return
     user_device_map = {}
-    for client in result:
+    for client in clients_to_pay:
         user_id, device_num = client[0], client[1]
         if user_id not in user_device_map:
             user_device_map[user_id] = [device_num]
@@ -230,7 +243,7 @@ async def callback_inline(call: types.CallbackQuery):
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="После добавления устройства с вашего счета автоматически спишется сумма, "
                                               f"соответсвующая стоимости подписки в месяц за одно устройство - {PRICE}₽.\n"
-                                              "Убедитесь, что на вашем счету достаточно средств.",
+                                              "Убедитесь, что на вашем счете достаточно средств.",
                                          reply_markup=get_add_device_confirmation_keyboard())
 
     if call.data == ADD_DEVICE_CONFIRMED_CALLBACK:
@@ -239,64 +252,68 @@ async def callback_inline(call: types.CallbackQuery):
 
         new_message = await call.bot.send_message(chat_id=call.from_user.id,
                                                   text="Проверяем данные. Это займет несколько секунд.")
-
-        new_device_num = check_devices_num(call.from_user.id)
-
-        if new_device_num is False:
-            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
-                                             text="К сожалению, Вы можете добавить не более 3х устройств.",
-                                             reply_markup=get_back_to_previous_menu(DEVICES_CALLBACK))
-            return
-
-        balance = botDB.get_balance(call.from_user.id)
-        if balance < PRICE:
-            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
-                                             text="На вашем счете недостаточно средств для подключения нового устройства. "
-                                                  "Стоимость подписки списывается автоматически после добавления устройства.\n"
-                                                  f"Стоимость подписки: {PRICE}₽ в месяц.\n"
-                                                  f"На вашем счете: {balance}₽.",
-                                             reply_markup=get_not_enough_money_keyboard())
-            return
-
-        cur_time = new_message.date.strftime("%Y-%m-%d %H:%M")
-
-        new_balance = balance - PRICE
-
         try:
-            botDB.update_balance(call.from_user.id, new_balance)
-        except NotEnoughMoneyError as e:
-            call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
-                                       text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
-            return
+            new_device_num = check_devices_num(call.from_user.id)
 
-        botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Добавлено Устройство №{new_device_num}")
+            if new_device_num is False:
+                await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                                 text="К сожалению, Вы можете добавить не более 3х устройств.",
+                                                 reply_markup=get_back_to_previous_menu(DEVICES_CALLBACK))
+                return
 
-        next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
+            balance = botDB.get_balance(call.from_user.id)
+            if balance < PRICE:
+                await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                                 text="На вашем счете недостаточно средств для подключения нового устройства. "
+                                                      "Стоимость подписки списывается автоматически после добавления устройства.\n"
+                                                      f"Стоимость подписки: {PRICE}₽ в месяц.\n"
+                                                      f"На вашем счете: {balance}₽.",
+                                                 reply_markup=get_not_enough_money_keyboard())
+                return
 
-        keys = Keys()
-        ips = botDB.get_next_free_ips()
+            cur_time = new_message.date.strftime("%Y-%m-%d %H:%M")
 
-        client = Client(call.from_user.id, new_device_num, ips, keys, next_date)
-        botDB.add_client_to_db(client)
-        config_file_path, qr_code_file_path = Files.create_client_config_file(client)
+            new_balance = balance - PRICE
 
-        await send_config_and_qr(call, config_file_path, qr_code_file_path)
+            try:
+                botDB.update_balance(call.from_user.id, new_balance)
+            except NotEnoughMoneyError as e:
+                call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                           text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
+                return
 
-        await call.bot.delete_message(call.from_user.id, new_message.message_id)
-        await call.bot.send_message(chat_id=call.from_user.id,
-                                    text=f"\"Устройство №{new_device_num}\" успешно добавлено. С вашего счета списано {PRICE}₽. "
-                                         f"Следующее списание будет произведено автоматически {transform_date_string_format(next_date)}.\n"
-                                         f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.\n"
-                                         f"При пополнении баланса подписка будет вновь активирована.",
-                                    reply_markup=get_back_to_main_menu_keyboard())
+            botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Добавлено Устройство №{new_device_num}")
 
-        Files.update_server_config_file(client)
+            next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
+
+            keys = Keys()
+            ips = botDB.get_next_free_ips()
+
+            client = Client(call.from_user.id, new_device_num, ips, keys, next_date)
+            botDB.add_client_to_db(client)
+            config_file_path, qr_code_file_path = Files.create_client_config_file(client)
+
+            await send_config_and_qr(call, config_file_path, qr_code_file_path)
+
+            await call.bot.delete_message(call.from_user.id, new_message.message_id)
+            await call.bot.send_message(chat_id=call.from_user.id,
+                                        text=f"\"Устройство №{new_device_num}\" успешно добавлено. С вашего счета списано {PRICE}₽. "
+                                             f"Следующее списание будет произведено автоматически {transform_date_string_format(next_date)}.\n"
+                                             f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
+                                        reply_markup=get_back_to_main_menu_keyboard())
+
+            Files.update_server_config_file(client)
+        except Exception as e:
+            await call.bot.send_message(chat_id=call.from_user.id, text=SOMETHING_WENT_WRONG_TEXT,
+                                        reply_markup=get_back_to_main_menu_keyboard())
+            print(f"Cannot add device for user: {call.from_user.id}.\n Error: {e}")
 
     if 'specific_device_callback#' in call.data:
         device_num = int(re.sub('specific_device_callback#', '', call.data))
+        active = botDB.check_if_active(call.from_user.id, device_num)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f"Устройство №{device_num}:",
-                                         reply_markup=get_specific_device_keyboard())
+                                         reply_markup=get_specific_device_keyboard(bool(active)))
 
     if call.data == GET_QR_AND_CONFIG_CALLBACK:
         device_num = int(re.sub('Устройство №', '', call.message.text)[:-1])
@@ -328,14 +345,71 @@ async def callback_inline(call: types.CallbackQuery):
                                          text=f'\"Устройство №{device_num}\" успешно удалено',
                                          reply_markup=get_back_to_main_menu_keyboard())
 
-        await botDB.add_free_ips(client.ips)
+        botDB.add_free_ips(client.ips)
+
+
+    if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CALLBACK:
+        device_num = int(re.search('[0-9]+', call.message.text).group())
+        await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                   text=f"Устройство №{device_num}:\n"
+                                        f"После продления подписки для данного устройства с вашего счета спишется сумма, "
+                                        f"соответсвующая стоимости подписки в месяц - {PRICE}₽.\n"
+                                        f"Убедитесь, что на вашем счете достаточно средств.",
+                                   reply_markup=get_extend_subscription_confirmation_keyboard())
+
+    if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
+        device_num = int(re.search('[0-9]+', call.message.text).group())
+        await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+
+        new_message = await call.bot.send_message(chat_id=call.from_user.id,  # todo вот если тут не отправится - все ебнется, а не хотелось бы
+                                                  text="Проверяем данные. Это займет несколько секунд.")
+
+        balance = botDB.get_balance(call.from_user.id)
+        if balance < PRICE:
+            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                             text="На вашем счете недостаточно средств для продления подписки."
+                                                  f"Стоимость подписки: {PRICE}₽ в месяц.\n"
+                                                  f"На вашем счете: {balance}₽.",
+                                             reply_markup=get_not_enough_money_keyboard())
+            return
+
+        cur_time = new_message.date.strftime("%Y-%m-%d %H:%M")
+
+        new_balance = balance - PRICE
+
+        try:
+            botDB.update_balance(call.from_user.id, new_balance)
+        except NotEnoughMoneyError as e:
+            call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                       text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
+            return
+
+        botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Продление прописки: \"Устройство №{device_num}\"")
+
+        next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
+
+        botDB.change_client_activity(call.from_user.id, device_num, 1)
+        botDB.update_client_end_date(call.from_user.id, device_num, next_date)
+        client = botDB.get_client(call.from_user.id, device_num)
+
+        await call.bot.delete_message(call.from_user.id, new_message.message_id)
+        await call.bot.send_message(chat_id=call.from_user.id,
+                                    text=f"Подписка для устройства №{device_num} успешно продлена.\nС вашего счета списано {PRICE}₽. "
+                                         f"Следующее списание будет произведено автоматически {transform_date_string_format(next_date)}.\n"
+                                         f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
+                                    reply_markup=get_back_to_main_menu_keyboard())
+
+        Files.update_server_config_file(client)
+
+        print(device_num)
+
 
     ### finance
 
     if call.data == FINANCE_CALLBACK:
         balance = botDB.get_balance(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                         text=f"На Вашем счету: {balance}₽", reply_markup=get_finance_keyboard())
+                                         text=f"На Вашем счете: {balance}₽", reply_markup=get_finance_keyboard())
 
     if call.data == PAYMENTS_HISTORY_CALLBACK:
         user_data_file_path = get_user_payments_history(call.from_user.id)
@@ -347,10 +421,22 @@ async def callback_inline(call: types.CallbackQuery):
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
     if call.data == FILL_UP_CALLBACK:
+        await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                         text="Выберите сумму", reply_markup=get_fill_up_balance_keyboard())
+
+    if call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
+        sum_value = FILL_UP_BALANCE_CALLBACKS_MAP[call.data]
         sent_message = await call.bot.send_message(chat_id=call.from_user.id, text="ок")
         await call.bot.delete_message(chat_id=call.from_user.id, message_id=sent_message.message_id)
         balance = botDB.get_balance(call.from_user.id)
-        new_balance = balance + PRICE
-        botDB.update_balance(call.from_user.id, new_balance)
-        botDB.add_transaction(call.from_user.id, 1, PRICE, sent_message.date.strftime("%Y-%m-%d %H:%M"),
-                              'Пополнение баланса')
+        new_balance = balance + sum_value
+        balance_updated = botDB.update_balance(call.from_user.id, new_balance)
+        if balance_updated:
+            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                      text=f"Ваш баланс успешно пополнен на {sum_value}₽", reply_markup=get_back_to_main_menu_keyboard())
+
+            botDB.add_transaction(call.from_user.id, 1, sum_value, sent_message.date.strftime("%Y-%m-%d %H:%M"),
+                                  'Пополнение баланса')
+        else:
+            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                             text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())

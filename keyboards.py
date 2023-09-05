@@ -6,13 +6,20 @@ from system.main import botDB
 def get_button(text, callback):
     return types.InlineKeyboardButton(text=text, callback_data=callback)
 
+
 BACK_TO_MAIN_MENU_BTN = get_button(BACK_TO_MAIN_MENU_TEXT, BACK_TO_MAIN_MENU_CALLBACK)
+
+
+def get_color_by_device_action(active: int):
+    return '🟢' if active else '🔴'
+
 
 def get_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(get_button(DEVICES_TEXT, DEVICES_CALLBACK))
     keyboard.add(get_button(FINANCE_TEXT, FINANCE_CALLBACK))
     return keyboard
+
 
 def get_back_to_previous_menu(callback: str):
     keyboard = types.InlineKeyboardMarkup()
@@ -23,9 +30,10 @@ def get_back_to_previous_menu(callback: str):
 def get_devices_keyboard(user_id: int):
     keyboard = types.InlineKeyboardMarkup()
     devices = botDB.get_user_devices(user_id)
-    devices.sort()
+    devices.sort(key=lambda x: x[0])
     for i in devices:
-        keyboard.add(get_button(f"Устройство №{i}", f"specific_device_callback#{i}"))
+        keyboard.add(
+            get_button(f"Устройство №{i[0]} {get_color_by_device_action(i[1])}", f"specific_device_callback#{i[0]}"))
     if len(devices) == 0:
         keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
     elif len(devices) < 3:
@@ -41,10 +49,13 @@ def get_add_device_confirmation_keyboard():
     return keyboard
 
 
-def get_specific_device_keyboard():
+def get_specific_device_keyboard(active: bool):
+    print(active)
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(get_button(GET_QR_AND_CONFIG_TEXT, GET_QR_AND_CONFIG_CALLBACK))
     keyboard.add(get_button(DELETE_DEVICE_TEXT, DELETE_DEVICE_CALLBACK))
+    if not active:
+        keyboard.add(get_button(EXTEND_SUBSCRIPTION_FOR_DEVICE_TEXT, EXTEND_SUBSCRIPTION_FOR_DEVICE_CALLBACK))
     keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, DEVICES_CALLBACK))
     return keyboard
 
@@ -78,3 +89,20 @@ def get_finance_keyboard():
     return keyboard
 
 
+def get_extend_subscription_confirmation_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(get_button(CONTINUE_TEXT, EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK),
+                 get_button(BACK_TO_PREV_MENU_TEXT, DEVICES_CALLBACK))
+    return keyboard
+
+
+def get_fill_up_balance_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(get_button(FILL_UP_BALANCE_100_TEXT, FILL_UP_BALANCE_100_CALLBACK),
+                 get_button(FILL_UP_BALANCE_200_TEXT, FILL_UP_BALANCE_200_CALLBACK),
+                 get_button(FILL_UP_BALANCE_300_TEXT, FILL_UP_BALANCE_300_CALLBACK))
+    keyboard.add(get_button(FILL_UP_BALANCE_500_TEXT, FILL_UP_BALANCE_500_CALLBACK),
+                 get_button(FILL_UP_BALANCE_700_TEXT, FILL_UP_BALANCE_700_CALLBACK),
+                 get_button(FILL_UP_BALANCE_1000_TEXT, FILL_UP_BALANCE_1000_CALLBACK))
+    keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, FINANCE_CALLBACK))
+    return keyboard
