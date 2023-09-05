@@ -24,13 +24,13 @@ class Keys:
 
     @staticmethod
     def generate_private_key():
-        return subprocess.check_output(['wg', 'genkey'], text=True, stderr=subprocess.PIPE).strip()
+        return subprocess.check_output(["wg", "genkey"], text=True, stderr=subprocess.PIPE).strip()
 
     @classmethod
     def generate_public_key(cls, private_key: str):
-        return subprocess.check_output(['wg', 'pubkey'], text=True, input=private_key,
+        return subprocess.check_output(["wg", "pubkey"], text=True, input=private_key,
                                              stderr=subprocess.PIPE).strip()
 
     @staticmethod
     def generate_preshared_key():
-        return subprocess.check_output(['wg', 'genpsk'], text=True, stderr=subprocess.PIPE).strip()
+        return subprocess.check_output(["wg", "genpsk"], text=True, stderr=subprocess.PIPE).strip()
