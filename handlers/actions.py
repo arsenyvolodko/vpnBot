@@ -70,6 +70,8 @@ async def send_config_and_qr(call: types.CallbackQuery, config_file_path: str, q
     if doc1 and doc2:
         delete_tmp_client_file(config_file_path)
         delete_tmp_client_file(qr_code_file_path)
+        return True
+    return False
 
 
 def delete_tmp_client_file(file_name: str):
@@ -272,17 +274,7 @@ async def callback_inline(call: types.CallbackQuery):
             return
 
         cur_time = new_message.date.strftime("%Y-%m-%d %H:%M")
-
         new_balance = balance - PRICE
-
-        try:
-            botDB.update_balance(call.from_user.id, new_balance)
-        except NotEnoughMoneyError as e:
-            call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
-                                       text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
-            return
-
-        botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Добавлено Устройство №{new_device_num}")
 
         next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
@@ -293,7 +285,29 @@ async def callback_inline(call: types.CallbackQuery):
         botDB.add_client_to_db(client)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
 
-        await send_config_and_qr(call, config_file_path, qr_code_file_path)
+        updated = Files.update_server_config_file(client)
+        error_flag = False
+        if updated:
+            sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
+            if not sent:
+                error_flag = True
+        else:
+            error_flag = True
+
+        if error_flag:
+            try:
+                botDB.remove_client_from_db(client.user_id, client.device_num)
+                Files.remove_client(client)
+                await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                                 text=SOMETHING_WENT_WRONG_TEXT,
+                                                 reply_markup=get_back_to_main_menu_keyboard())
+            except Exception as e:
+                print("problems")
+                pass
+            return
+
+        botDB.update_balance(call.from_user.id, new_balance)
+        botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Добавлено Устройство №{new_device_num}")
 
         await call.bot.delete_message(call.from_user.id, new_message.message_id)
         await call.bot.send_message(chat_id=call.from_user.id,
@@ -302,13 +316,6 @@ async def callback_inline(call: types.CallbackQuery):
                                          f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
                                     reply_markup=get_back_to_main_menu_keyboard())
 
-        Files.update_server_config_file(client)
-    # except Exception as e:
-        await call.bot.send_message(chat_id=call.from_user.id, text=SOMETHING_WENT_WRONG_TEXT,
-                                    reply_markup=get_back_to_main_menu_keyboard())
-        # raise e
-        # print(f"Cannot add device for user: {call.from_user.id}.\n Error: {e}")
-          
 
     if 'specific_device_callback#' in call.data:
         device_num = int(re.sub('specific_device_callback#', '', call.data))

@@ -35,7 +35,7 @@ class Files:
         with open(f'some_dir/server.conf', 'a') as file:
             file.write(new_data)
             file.close()
-
+        return True
 
     @classmethod
     def gen_data_for_client_config_file(cls, client: Client):
