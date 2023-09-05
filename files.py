@@ -103,11 +103,3 @@ class Files:
             file.close()
             return True
 
-
-
-ips = Ips('10.66.66.13/32')
-keys = Keys('mFw2SoHeJACsQCeaufjx7biaTUwK3lOlaRBWXHwUO3I=', '5I3vAh/Z8nOlB70KtHrPUR3KjbUSiZMTnfigw9WmEWw=', 'EBS7ushP9suGXlsBe3zECED2sOWAtbwAy94I5bRaAWY=')
-client = Client(123456789, 2, ips, keys, '30.08.2023')
-# client = Client(1234567, 1, ips, keys, '30.08.2023')
-# add_client(client)
-# delete_client(client)

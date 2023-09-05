@@ -9,7 +9,7 @@ from Exceptions.NotEnoughMoneyError import NotEnoughMoneyError
 from Ips import Ips
 from Keys import Keys
 from constants import PRICE
-from system.config import *
+from config import *
 
 
 class BotDB:

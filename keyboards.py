@@ -1,6 +1,6 @@
 from aiogram import types
 from constants import *
-from system.main import botDB
+from main import botDB
 
 
 def get_button(text, callback):
