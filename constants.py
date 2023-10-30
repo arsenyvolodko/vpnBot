@@ -1,10 +1,30 @@
-PRICE = 100 # ₽
+PRICE = 100  # ₽
 
 BACK_TO_MAIN_MENU_TEXT = 'Вернуться в меню'
 BACK_TO_MAIN_MENU_CALLBACK = 'back_to_main_menu_callback'
 BACK_TO_PREV_MENU_TEXT = 'Назад'
 CONTINUE_TEXT = 'Продолжить'
-MAIN_MENU_TEXT = 'Меню'
+MY_ID = 506954303
+
+
+MAIN_MENU_TEXT = '''
+Меню\n
+Для добавления нового устройства или удаления существующего, перейдите в раздел "Устройства".\n
+Для пополнения баланса или просмотра истории транзакций, перейдите в раздел "Финансы".'''
+
+START_TEXT = f'''
+Привет! Этот бот предоставляет специальные ключи для подключения к VPN через приложение Wireguard.\n
+Уникальные алгоритмы шифрования и маршрутизации не снижают скорость интернета, а также обеспечивают мгновенное подключение к VPN.\n
+На вашем балансе {PRICE}₽, чтобы Вы могли попробовать первый месяц бесплатно.\n
+Для начала, нужно скачать приложение Wireguard, а затем перейти в меню.
+'''
+
+# PATHS
+PATH_TO_CONFIG = "some_dir/server.conf"
+PATH_TO_META = "meta_configs"
+PATH_TO_LOGS = 'logs.txt'
+PATH_TO_CLIENTS_FILES = 'client_files'
+
 
 DEVICES_TEXT = 'Устройства'
 DEVICES_CALLBACK = 'devices_callback'

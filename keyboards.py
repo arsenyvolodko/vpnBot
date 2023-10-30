@@ -1,6 +1,7 @@
 from aiogram import types
+from aiogram.types import InlineKeyboardButton
+
 from constants import *
-from main import botDB
 
 
 def get_button(text, callback):
@@ -27,16 +28,16 @@ def get_back_to_previous_menu(callback: str):
     return keyboard
 
 
-def get_devices_keyboard(user_id: int):
+def get_devices_keyboard(devices: list):
     keyboard = types.InlineKeyboardMarkup()
-    devices = botDB.get_user_devices(user_id)
+    # devices = botDB.get_user_devices(user_id)
     devices.sort(key=lambda x: x[0])
     for i in devices:
         keyboard.add(
             get_button(f"Устройство №{i[0]} {get_color_by_device_action(i[1])}", f"specific_device_callback#{i[0]}"))
-    if len(devices) == 0:
-        keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
-    elif len(devices) < 3:
+    # if len(devices) == 0:
+    #     keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
+    if len(devices) < 3:
         keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
     keyboard.add(BACK_TO_MAIN_MENU_BTN)
     return keyboard
@@ -44,7 +45,7 @@ def get_devices_keyboard(user_id: int):
 
 def get_add_device_confirmation_keyboard():
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(get_button(BACK_TO_MAIN_MENU_TEXT, DEVICES_CALLBACK),
+    keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, DEVICES_CALLBACK),
                  get_button(CONTINUE_TEXT, ADD_DEVICE_CONFIRMED_CALLBACK))
     return keyboard
 
@@ -69,11 +70,19 @@ def get_delete_device_confirmation_keyboard():
 
 def get_not_enough_money_keyboard():
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(get_button(FILL_UP_TEXT, FILL_UP_CALLBACK))
     keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, DEVICES_CALLBACK))
+    keyboard.add(get_button(FILL_UP_TEXT, FILL_UP_CALLBACK))
     keyboard.add(BACK_TO_MAIN_MENU_BTN)
     return keyboard
 
+
+def to_main_menu_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton('Android', url='https://play.google.com/store/apps/details?id=com.wireguard.android'))
+    keyboard.add(InlineKeyboardButton('iOS', url='https://apps.apple.com/us/app/wireguard/id1441195209'))
+    keyboard.add(InlineKeyboardButton('PC', url='https://www.wireguard.com/install/'))
+    keyboard.add(get_button("Перейти в меню", BACK_TO_MAIN_MENU_CALLBACK))
+    return keyboard
 
 def get_back_to_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()

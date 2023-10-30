@@ -1,9 +1,10 @@
-TOKEN = '6693022227:AAEiYjqds3y4W_AQIS5UKSr78fJndgQMgD0'
+TOKEN = '6693022227:AAFrh7oT-41IQ-pW5I_HWXhOZ1qwOOwRua0'
 
-host_db = 'ep-odd-leaf-17942658.us-east-2.aws.neon.tech'
+host_db = '91.201.113.17'
+# host_db = 'localhost'
 port_db = '5432'
-database = 'ample-mollusk-75_db_8850180'
-user_db = 'arsenyvolodko'
-password_db = 'bys8f1SqaKMd'
+database = 'vpnBotDB'
+user_db = 'postgres'
+password_db = 'AAVolodko6872!'
 
 # postgres://arsenyvolodko:i5tTwdkN3ZEA@ep-odd-leaf-17942658-pooler.us-east-2.aws.neon.tech/neondb

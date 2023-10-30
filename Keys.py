@@ -1,5 +1,6 @@
 import subprocess
 
+
 class IncompatibleKeysError(RuntimeError):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
@@ -21,7 +22,6 @@ class Keys:
         self.public_key = public_key
         self.preshared_key = preshared_key
 
-
     @staticmethod
     def generate_private_key():
         return subprocess.check_output(["wg", "genkey"], text=True, stderr=subprocess.PIPE).strip()
@@ -29,7 +29,7 @@ class Keys:
     @classmethod
     def generate_public_key(cls, private_key: str):
         return subprocess.check_output(["wg", "pubkey"], text=True, input=private_key,
-                                             stderr=subprocess.PIPE).strip()
+                                       stderr=subprocess.PIPE).strip()
 
     @staticmethod
     def generate_preshared_key():

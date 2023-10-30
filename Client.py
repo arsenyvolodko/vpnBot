@@ -1,12 +1,14 @@
 from Ips import Ips
 from Keys import Keys
+from constants import *
+
 
 class NoSuchClientExistsError(RuntimeError):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
-class Client:
 
+class Client:
     def __init__(self, user_id: int, device_num: int, ips: Ips, keys: Keys = None, end_date: str = None):
         self.user_id = user_id
         self.device_num = device_num
@@ -32,6 +34,4 @@ class Client:
         return f'{self.user_id}_{self.device_num}'
 
     def get_path_to_config(self):
-        return 'client_files/' + self.get_client_name() + '.conf'
-
-
+        return f'{PATH_TO_CLIENTS_FILES}/' + self.get_client_name() + '.conf'

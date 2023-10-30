@@ -3,6 +3,8 @@ import qrcode
 from Client import Client
 from Ips import Ips
 from Keys import Keys
+from constants import *
+
 
 class Files:
 
@@ -11,12 +13,11 @@ class Files:
         img = qrcode.make(file_data)
         img.save(path)
 
-
     @classmethod
     def create_client_config_file(cls, client: Client):
         file_data = cls.gen_data_for_client_config_file(client)
 
-        base_path = f'client_files/{client.user_id}_{client.device_num}'
+        base_path = f'{PATH_TO_CLIENTS_FILES}/{client.user_id}_{client.device_num}'
         config_file_path = f'{base_path}.conf'
         qr_code_file_path = f'{base_path}' + '_qr.png'
 
@@ -27,12 +28,11 @@ class Files:
         cls.make_qr_code_png(file_data, qr_code_file_path)
         return config_file_path, qr_code_file_path
 
-
     @classmethod
     def update_server_config_file(cls, client: Client):
         new_data = cls.gen_data_for_server_config_file(client)
         cls.make_back_up_copy()
-        with open(f'some_dir/server.conf', 'a') as file:
+        with open(PATH_TO_CONFIG, 'a') as file:
             file.write(new_data)
             file.close()
         return True
@@ -52,7 +52,6 @@ class Files:
         file_data += 'AllowedIPs = 0.0.0.0/0, ::/0\n'
         return file_data
 
-
     @classmethod
     def gen_data_for_server_config_file(cls, client: Client):
         new_data = ''
@@ -64,32 +63,29 @@ class Files:
         new_data += '\n'
         return new_data
 
-
     @classmethod
     def add_client(cls, client: Client):
         cls.create_client_config_file(client)
         cls.update_server_config_file(client)
 
-
     @classmethod
     def get_data_from_server_file(cls):
         data = ''
-        with open('some_dir/server.conf', 'r') as file:
+        with open(PATH_TO_CONFIG, 'r') as file:
             for line in file:
                 data += line
             file.close()
         return data
-
 
     @classmethod
     def make_back_up_copy(cls, data: str = None):
         if not data:
             data = cls.get_data_from_server_file()
         cur_time = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
-        with open(f'some_dir/meta{cur_time}.conf', 'w') as meta_file:
+
+        with open(f'{PATH_TO_META}/meta{cur_time}.conf', 'w') as meta_file:
             meta_file.write(data)
             meta_file.close()
-
 
     @classmethod
     def remove_client(cls, client: Client):
@@ -98,8 +94,7 @@ class Files:
         cls.make_back_up_copy(old_data)
 
         new_data = old_data.replace(data_to_delete, '', 1)
-        with open(f'some_dir/server.conf', 'w') as file:
+        with open(PATH_TO_CONFIG, 'w') as file:
             file.write(new_data)
             file.close()
             return True
-

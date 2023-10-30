@@ -1,47 +1,55 @@
 import os
-import time
-
-import pytz
-import schedule
-
-from Exceptions.NotEnoughMoneyError import NotEnoughMoneyError
-from Ips import Ips
-from dispatcher import bot
-# from system.main import botDB
 import re
 from datetime import datetime
+from io import BytesIO
+
 from dateutil.relativedelta import relativedelta
-from aiogram import types
-from Client import Client
-from Keys import Keys
-from constants import *
-from files import Files
-from keyboards import *
 from aiogram.types import InputFile
 
+import Exceptions
+from shared import bot, botDB
+from Client import Client
+from Keys import Keys
+from files import Files
+from keyboards import *
+from constants import *
 
-@bot.message_handler(commands="start")
-async def start(message: types.Message):
-    sent_message = await message.bot.send_message(message.from_user.id, MAIN_MENU_TEXT,
-                                                  reply_markup=get_main_menu_keyboard())
 
+@bot.message_handler(commands=["start"])
+async def welcome_message(message: types.Message):
+    sent_message = await message.bot.send_message(message.from_user.id, START_TEXT,
+                                                  reply_markup=to_main_menu_keyboard())
     if not botDB.user_exists(message.from_user.id):
         botDB.add_user(message.from_user.id)
         botDB.add_transaction(message.from_user.id, 1, PRICE, sent_message.date.strftime("%Y-%m-%d %H:%M"),
                               'Стартовый баланс')
 
+
+@bot.message_handler(commands=["menu"])
+async def menu_message(message: types.Message):
+    if botDB.user_exists(message.from_user.id):
+        await message.bot.send_message(message.from_user.id, MAIN_MENU_TEXT,
+                                       reply_markup=get_main_menu_keyboard())
+        return
+
+    sent_message = await message.bot.send_message(message.from_user.id, START_TEXT,
+                                                  reply_markup=to_main_menu_keyboard())
+    botDB.add_user(message.from_user.id)
+    botDB.add_transaction(message.from_user.id, 1, PRICE, sent_message.date.strftime("%Y-%m-%d %H:%M"),
+                          'Стартовый баланс')
+
+
 @bot.message_handler(commands="devices")
 async def devices(message: types.Message):
     botDB.get_user_devices(message.from_user.id)
-    await check_payment_day()
 
 
 def check_devices_num(user_id: int):
-    devices = botDB.get_user_devices(user_id)
-    if len(devices) == 3:
+    user_devices = botDB.get_user_devices(user_id)
+    if len(user_devices) == 3:
         return False
-    devices_nums = [i[0] for i in devices]
-    new_device_num = 1 if len(devices) == 0 else max(devices_nums) + 1
+    devices_nums = [i[0] for i in user_devices]
+    new_device_num = 1 if len(user_devices) == 0 else max(devices_nums) + 1
     return new_device_num
 
 
@@ -64,8 +72,9 @@ def transform_date_string_format(date_string: str, time=False):
 
 async def send_config_and_qr(call: types.CallbackQuery, config_file_path: str, qr_code_file_path: str):
     with open(config_file_path, 'rb') as config_file:
+        file_data = BytesIO(config_file.read())
         doc1 = await call.bot.send_document(chat_id=call.from_user.id,
-                                            document=InputFile(config_file, filename='NexVpn.conf'))
+                                            document=InputFile(file_data, filename='NexVpn.conf'))
     doc2 = await call.bot.send_photo(call.from_user.id, open(f'{qr_code_file_path}', 'rb'))
     if doc1 and doc2:
         delete_tmp_client_file(config_file_path)
@@ -76,7 +85,7 @@ async def send_config_and_qr(call: types.CallbackQuery, config_file_path: str, q
 
 def delete_tmp_client_file(file_name: str):
     try:
-        os.remove(f'client_files/{file_name}')
+        os.remove(f'{file_name}')
     except Exception as e:
         print(f"Cannot delete file {file_name}. Error: {e}")
         return
@@ -100,125 +109,12 @@ def get_user_payments_history(user_id: int):
         cur_transaction = process_transaction(transaction)
         text += cur_transaction + '\n\n'
 
-    data_file_path = f'client_files/{user_id}_data.txt'
+    data_file_path = f'{PATH_TO_CLIENTS_FILES}/{user_id}_data.txt'
     with open(data_file_path, 'w', encoding='utf-8') as file:
         file.write(text)
         file.close()
 
     return data_file_path
-
-
-def update_clients_end_date(user_id, extend_devices: list):
-    cur_date = datetime.now().date().strftime("%Y-%m-%d")
-    new_date = get_next_date(cur_date)
-    for device_num in extend_devices:
-        botDB.update_client_end_date(user_id, device_num, new_date)
-
-def deactivate_devices(user_id: int, devices: list):
-    for device_num in devices:
-        botDB.change_client_activity(user_id, device_num, 0)
-        client = botDB.get_client(user_id, device_num)
-        Files.remove_client(client)
-        print("deactive_client:", client)
-        time.sleep(1)
-
-
-def get_info_subscription_message(cost: float, extend_devices: list, turn_off_devices: list):
-    text_to_send = ''
-    if len(extend_devices):
-        text_for_extended_devices = ''
-        for i in extend_devices:
-            text_for_extended_devices += f"\"Устройство №{i}\", "
-        text_for_extended_devices = text_for_extended_devices[:-2]
-        text_to_send = f"С вашего счета списано {cost}₽. \n\n" \
-                       f"Подписка для следующих устройств продлена на месяц: {text_for_extended_devices}.\n\n"
-
-    text_for_turn_off_devices = ''
-    if len(turn_off_devices):
-        for i in turn_off_devices:
-            text_for_turn_off_devices += f"\"Устройство №{i}\", "
-        text_for_turn_off_devices = text_for_turn_off_devices[:-2]
-
-    if len(text_for_turn_off_devices):
-        text_to_send += f'Доступ к VPN для следующих устройств отключен из-за нехватки средств на счете для продления подписки: {text_for_turn_off_devices}.\n\n' \
-                        'При пополнении счета подписка будет продлена автоматически. Учтите, что, если устройство будет отключено более 2х месяцев, то оно будет удалено автоматически.'
-
-    return text_to_send
-
-async def extend_subscription(user_id: int, extend_devices: list, turn_off_devices: list):
-    if not extend_devices:
-        text_to_send = get_info_subscription_message(0, extend_devices, turn_off_devices)
-        try:
-            await bot.bot.send_message(chat_id=user_id, text=text_to_send)
-        except Exception as e:
-            print(f'cannot send message to user: {user_id}')
-            pass
-        deactivate_devices(user_id, turn_off_devices)
-        return
-    user_balance = botDB.get_balance(user_id)
-    cost = len(extend_devices) * PRICE
-    new_balance = user_balance - cost
-    if new_balance < 0:
-        await check_users_balances_for_subscription({user_id: extend_devices + turn_off_devices})
-        return
-    botDB.update_balance(user_id, new_balance)
-    update_clients_end_date(user_id, extend_devices)
-    text_to_send = get_info_subscription_message(cost, extend_devices, turn_off_devices)
-    # print("text_to_send: ", text_to_send)
-    try:
-        msg = await bot.bot.send_message(chat_id=user_id, text=text_to_send)
-        cur_time = msg.date.strftime("%Y-%m-%d %H:%M")
-    except Exception as e:
-        cur_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-    deactivate_devices(user_id, turn_off_devices)
-    for i in extend_devices:
-        botDB.add_transaction(user_id, 0, PRICE, cur_time, f"Продление прописки: \"Устройство №{i}\"")
-
-
-async def check_users_balances_for_subscription(user_device_map: dict):
-    for user in user_device_map:
-        user_devices = user_device_map[user]
-        user_balance = botDB.get_balance(user)
-        print(f'user: {user}, balance: {user_balance}')
-        devices_amount = int(user_balance // PRICE)
-        extend_devices = user_devices[:devices_amount]
-        turn_off_devices = []
-        if devices_amount < len(user_devices):
-            turn_off_devices = user_devices[devices_amount:]
-        print(user_balance, extend_devices, turn_off_devices)
-        await extend_subscription(user, extend_devices, turn_off_devices)
-
-
-async def delete_clients_by_end_date(clients_to_delete):
-    for i in clients_to_delete:
-        user_id, device_num = i
-        ip = Ips(botDB.get_client_ip(user_id, device_num))
-        botDB.remove_client_from_db(user_id, device_num)
-        added = botDB.add_free_ips(ip)
-        print(added)
-        await bot.bot.send_message(chat_id=user_id, text=f"Устройство №{device_num} удалено, поскольку было неактивно в течение 2х месяцев")
-
-
-async def check_payment_day():
-    cur_date = datetime.now().date().strftime("%Y-%m-%d")
-    clients_to_pay = botDB.get_clients_to_pay(cur_date)
-    clients_to_delete = botDB.get_clients_to_delete(get_next_date(cur_date, -2))
-    print("clients to delete: ", clients_to_delete)
-    await delete_clients_by_end_date(clients_to_delete)  # todo check if works
-    if len(clients_to_pay) == 0:
-        print("no clients to pay")
-        return
-    user_device_map = {}
-    for client in clients_to_pay:
-        user_id, device_num = client[0], client[1]
-        if user_id not in user_device_map:
-            user_device_map[user_id] = [device_num]
-        else:
-            user_device_map[user_id].append(device_num)
-    for user in user_device_map:
-        user_device_map[user].sort()
-
-    await check_users_balances_for_subscription(user_device_map)
 
 
 @bot.callback_query_handler()
@@ -229,9 +125,10 @@ async def callback_inline(call: types.CallbackQuery):
                                          reply_markup=get_main_menu_keyboard())
 
     if call.data == DEVICES_CALLBACK:
+        curr_devices = botDB.get_user_devices(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="Выберите устройство:",
-                                         reply_markup=get_devices_keyboard(call.from_user.id))
+                                         reply_markup=get_devices_keyboard(curr_devices))
 
     if call.data == ADD_DEVICE_CALLBACK:
         new_device_num = check_devices_num(call.from_user.id)
@@ -279,12 +176,22 @@ async def callback_inline(call: types.CallbackQuery):
         next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
         keys = Keys()
-        ips = botDB.get_next_free_ips()
+        try:
+            ips = botDB.get_next_free_ips()
+        except Exceptions.NoFreeIPsError:
+            await call.bot.send_message(chat_id=MY_ID,
+                                        text=f"No more free IPs available, user: @{call.from_user.username}")
+            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                             text="Вам удивительно повезло стать тем человеком, на котором на сервере закончились "
+                                                  "свободные IP адреса. Мы уже работаем над устранением проблемы, приносим извинения "
+                                                  "за то, что не оправдали Ваших ожиданий. Мы напишем Вам, когда исправим проблему и "
+                                                  "предоставим 3 месяца подписки бесплатно.\nЕсли вы уже пополнили свой баланс, но хотите "
+                                                  "вывести средства обратно, напишите @arseny_volodko.")
+            return
 
         client = Client(call.from_user.id, new_device_num, ips, keys, next_date)
         botDB.add_client_to_db(client)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
-
         updated = Files.update_server_config_file(client)
         error_flag = False
         if updated:
@@ -298,11 +205,11 @@ async def callback_inline(call: types.CallbackQuery):
             try:
                 botDB.remove_client_from_db(client.user_id, client.device_num)
                 Files.remove_client(client)
+                botDB.add_free_ips(ips)
                 await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                                  text=SOMETHING_WENT_WRONG_TEXT,
                                                  reply_markup=get_back_to_main_menu_keyboard())
-            except Exception as e:
-                print("problems")
+            except Exception:
                 pass
             return
 
@@ -316,6 +223,8 @@ async def callback_inline(call: types.CallbackQuery):
                                          f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
                                     reply_markup=get_back_to_main_menu_keyboard())
 
+        with open(PATH_TO_LOGS, 'a') as logs:
+            logs.write(f"user {client.user_id} added device {client.device_num}")
 
     if 'specific_device_callback#' in call.data:
         device_num = int(re.sub('specific_device_callback#', '', call.data))
@@ -356,21 +265,21 @@ async def callback_inline(call: types.CallbackQuery):
 
         botDB.add_free_ips(client.ips)
 
-
     if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                   text=f"Устройство №{device_num}:\n"
-                                        f"После продления подписки для данного устройства с вашего счета спишется сумма, "
-                                        f"соответсвующая стоимости подписки в месяц - {PRICE}₽.\n"
-                                        f"Убедитесь, что на вашем счете достаточно средств.",
-                                   reply_markup=get_extend_subscription_confirmation_keyboard())
+                                         text=f"Устройство №{device_num}:\n"
+                                              f"После продления подписки для данного устройства с вашего счета спишется сумма, "
+                                              f"соответсвующая стоимости подписки в месяц - {PRICE}₽.\n"
+                                              f"Убедитесь, что на вашем счете достаточно средств.",
+                                         reply_markup=get_extend_subscription_confirmation_keyboard())
 
     if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
         await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
 
-        new_message = await call.bot.send_message(chat_id=call.from_user.id,  # todo вот если тут не отправится - все ебнется, а не хотелось бы
+        new_message = await call.bot.send_message(chat_id=call.from_user.id,
+                                                  # todo вот если тут не отправится - все ебнется, а не хотелось бы
                                                   text="Проверяем данные. Это займет несколько секунд.")
 
         balance = botDB.get_balance(call.from_user.id)
@@ -388,12 +297,13 @@ async def callback_inline(call: types.CallbackQuery):
 
         try:
             botDB.update_balance(call.from_user.id, new_balance)
-        except NotEnoughMoneyError as e:
+        except Exceptions.NotEnoughMoneyError:
             call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                        text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
             return
 
-        botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Продление прописки: \"Устройство №{device_num}\"")
+        botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time,
+                              f"Продление прописки: \"Устройство №{device_num}\"")
 
         next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
@@ -412,8 +322,7 @@ async def callback_inline(call: types.CallbackQuery):
 
         print(device_num)
 
-
-    ### finance
+    # finance
 
     if call.data == FINANCE_CALLBACK:
         balance = botDB.get_balance(call.from_user.id)
@@ -424,14 +333,16 @@ async def callback_inline(call: types.CallbackQuery):
         user_data_file_path = get_user_payments_history(call.from_user.id)
         # await call.bot.send_document(call.from_user.id, ('balance history.txt', user_data_file_path))
         with open(user_data_file_path, 'rb') as file:
-            await call.bot.send_document(chat_id=call.from_user.id, document=InputFile(file,
+            file_data = BytesIO(file.read())
+            await call.bot.send_document(chat_id=call.from_user.id, document=InputFile(file_data,
                                                                                        filename='balance history.txt'))  # todo добавить какой-нибудь текст
         await call.bot.delete_message(call.from_user.id, call.message.message_id)
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
     if call.data == FILL_UP_CALLBACK:
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                         text="Выберите сумму", reply_markup=get_fill_up_balance_keyboard())
+                                         text="Выберите, на какую сумму пополнить баланс",
+                                         reply_markup=get_fill_up_balance_keyboard())
 
     if call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
         sum_value = FILL_UP_BALANCE_CALLBACKS_MAP[call.data]
@@ -442,10 +353,12 @@ async def callback_inline(call: types.CallbackQuery):
         balance_updated = botDB.update_balance(call.from_user.id, new_balance)
         if balance_updated:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                      text=f"Ваш баланс успешно пополнен на {sum_value}₽", reply_markup=get_back_to_main_menu_keyboard())
+                                             text=f"Ваш баланс успешно пополнен на {sum_value}₽",
+                                             reply_markup=get_back_to_main_menu_keyboard())
 
             botDB.add_transaction(call.from_user.id, 1, sum_value, sent_message.date.strftime("%Y-%m-%d %H:%M"),
                                   'Пополнение баланса')
         else:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                             text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
+                                             text=SOMETHING_WENT_WRONG_TEXT,
+                                             reply_markup=get_back_to_main_menu_keyboard())

@@ -4,8 +4,9 @@ import threading
 import psycopg2
 import time
 
+import config
+from Exceptions.NoFreeIPsError import NoFreeIPsError
 from Client import Client, NoSuchClientExistsError
-from Exceptions.NotEnoughMoneyError import NotEnoughMoneyError
 from Ips import Ips
 from Keys import Keys
 from constants import PRICE
@@ -14,55 +15,69 @@ from config import *
 
 class BotDB:
 
+    # def __init__(self):
+    #     self.conn = self.__connect()
+    #     self.__try_to_connect()
+    #
+    # def __pool_connection(self):
+    #     while True:
+    #         try:
+    #             # MESSAGES_CONTAINER.clear()
+    #             with self.conn, self.conn.cursor() as cursor:
+    #                 cursor.execute("SELECT")
+    #                 print(f"the connection is stable: {datetime.now()}")
+    #         except Exception as e:
+    #             print("ERROR: No connection to DB.")
+    #         time.sleep(60)
+    #
+    # def __try_to_connect(self):
+    #     try:
+    #         # cursor = self.__connect()
+    #         print("Successfully connected to DataBase")
+    #         db_thread = threading.Thread(target=self.__pool_connection)
+    #         db_thread.daemon = True  # Поток будет остановлен при завершении основного потока
+    #         db_thread.start()
+    #     except Exception as e:
+    #         print(e)
+    #         if "Unknown host" in str(e):
+    #             print("Probably, there's no internet connection. Check wi-fi connection!")
+    #         for i in range(5, 0, -1):
+    #             print(f"Next request in {i} seconds")
+    #             time.sleep(1)
+    #         print('\n')
+    #         self.__try_to_connect()
+    #
+    # def __connect(self):
+    #     conn = psycopg2.connect(host=host_db,
+    #                             port=port_db,
+    #                             database=database,
+    #                             user=user_db,
+    #                             password=password_db,
+    #                             keepalives=1)
+    #     return conn
+
     def __init__(self):
         self.conn = self.__connect()
-        self.__try_to_connect()
-
-    def __pool_connection(self):
-        while True:
-            try:
-                # MESSAGES_CONTAINER.clear()
-                with self.conn, self.conn.cursor() as cursor:
-                    cursor.execute("SELECT")
-                    print(f"the connection is stable: {datetime.now()}")
-            except Exception as e:
-                print("ERROR: No connection to DB.")
-            time.sleep(60)
-
-    def __try_to_connect(self):
-        try:
-            # cursor = self.__connect()
-            print("Successfully connected to DataBase")
-            db_thread = threading.Thread(target=self.__pool_connection)
-            db_thread.daemon = True  # Поток будет остановлен при завершении основного потока
-            db_thread.start()
-        except Exception as e:
-            print(e)
-            if "Unknown host" in str(e):
-                print("Probably, there's no internet connection. Check wi-fi connection!")
-            for i in range(5, 0, -1):
-                print(f"Next request in {i} seconds")
-                time.sleep(1)
-            print('\n')
-            self.__try_to_connect()
 
     def __connect(self):
-        conn = psycopg2.connect(host=host_db,
-                                port=port_db,
-                                database=database,
-                                user=user_db,
-                                password=password_db,
-                                keepalives=1)
+        conn = psycopg2.connect(
+            host=config.host_db,
+            port=config.port_db,
+            database=config.database,
+            user=config.user_db,
+            password=config.password_db
+        )
         return conn
 
     ### BALANCE TABLE
     def user_exists(self, user_id: int):
         with self.conn, self.conn.cursor() as cursor:
-            cursor.execute("SELECT id FROM balance_table WHERE user_id = %s", (user_id,))
+            # cursor.execute("SELECT id FROM balance_table WHERE user_id = %s", (user_id,))
+            cursor.execute("SELECT user_id FROM balance_table WHERE user_id = %s", (user_id,))
             result = cursor.fetchone()
         return bool(result)
 
-    def update_balance(self, user_id: int, new_balance: float):
+    def update_balance(self, user_id: int, new_balance: int):
 
         if new_balance < 0:
             return False
@@ -77,7 +92,7 @@ class BotDB:
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("SELECT balance FROM balance_table WHERE user_id = %s", (user_id,))
             result = cursor.fetchone()
-        return float(result[0])
+        return int(result[0])
 
     ### CLIENT TABLE
 
@@ -133,21 +148,20 @@ class BotDB:
     def __get_clients_to_pay_or_delete(self, date: str, active: int, strict: bool):
         with self.conn, self.conn.cursor() as cursor:
             if strict:
-                cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date = %s and active = %s", (date, active))
+                cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date = %s and active = %s",
+                               (date, active))
                 result = cursor.fetchall()
             else:
-                cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date <= %s and active = %s", (date, active))
+                cursor.execute(f"SELECT user_id, device_num FROM clients WHERE end_date <= %s and active = %s",
+                               (date, active))
                 result = cursor.fetchall()
         return result
-
 
     def get_client_ip(self, user_id: int, device_num: int):
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute(f"SELECT ipv4 FROM clients WHERE user_id = %s and device_num = %s", (user_id, device_num))
             result = cursor.fetchone()
         return result[0]
-
-
 
     def change_client_activity(self, user_id: int, device_num: int, new_active_value: int):
         with self.conn, self.conn.cursor() as cursor:
@@ -196,6 +210,8 @@ class BotDB:
                 ips = Ips(row[0])
                 cursor.execute("DELETE FROM free_ips WHERE ipv4 = %s", (ips.get_ipv4(True),))
                 self.conn.commit()
+            else:
+                raise NoFreeIPsError("No free Ips available")
         return ips
 
     ### transactions
@@ -208,7 +224,7 @@ class BotDB:
             cursor.execute("INSERT INTO balance_table (user_id, balance) VALUES (%s, %s)", (user_id, PRICE))
             self.conn.commit()
 
-    def add_transaction(self, user_id: int, operation_type: int, value: float, operation_time: str, comment: str = ''):
+    def add_transaction(self, user_id: int, operation_type: int, value: int, operation_time: str, comment: str = ''):
         # balance = self.get_balance(user_id)
         # try:
         #     if operation_type == 1:
