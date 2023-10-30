@@ -20,10 +20,11 @@ START_TEXT = f'''
 '''
 
 # PATHS
-PATH_TO_CONFIG = "some_dir/server.conf"
-PATH_TO_META = "meta_configs"
-PATH_TO_LOGS = 'logs.txt'
-PATH_TO_CLIENTS_FILES = 'client_files'
+# PATH_TO_CONFIG = "some_dir/server.conf"
+PATH_TO_CONFIG = "/../etc/wireguard/wg0.conf"
+PATH_TO_META = "./meta_configs"
+PATH_TO_LOGS = './logs.txt'
+PATH_TO_CLIENTS_FILES = './client_files'
 
 
 DEVICES_TEXT = 'Устройства'
