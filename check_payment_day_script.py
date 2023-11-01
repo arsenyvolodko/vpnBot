@@ -8,18 +8,12 @@ from Ips import Ips
 from constants import PRICE
 from files import Files
 from constants import *
-
-
-def get_next_date(date_string: str = None, months: int = 1):
-    date = datetime.strptime(date_string, "%Y-%m-%d")
-    delta = relativedelta(months=months)
-    next_payment_date = date.replace(day=date.day) + delta
-    return next_payment_date.strftime("%Y-%m-%d")
+from DateFunc import DateFunc
 
 
 def update_clients_end_date(user_id, extend_devices: list):
-    cur_date = datetime.now().date().strftime("%Y-%m-%d")
-    new_date = get_next_date(cur_date)
+    cur_date = DateFunc.get_cur_date()
+    new_date = DateFunc.get_next_date(cur_date)
     for device_num in extend_devices:
         botDB.update_client_end_date(user_id, device_num, new_date)
         logs.write(f'{cur_date}: subscription extended for device {device_num} of user {user_id}')
@@ -30,7 +24,7 @@ def deactivate_devices(user_id: int, devices: list):
         botDB.change_client_activity(user_id, device_num, 0)
         client = botDB.get_client(user_id, device_num)
         Files.remove_client(client)
-        cur_date = datetime.now().date().strftime("%Y-%m-%d")
+        cur_date = DateFunc.get_cur_date()
         logs.write(f'{cur_date}: deactivate device: {device_num} for user {user_id}\n')
         time.sleep(1)
 
@@ -84,7 +78,7 @@ async def extend_subscription(user_id: int, extend_devices: list, turn_off_devic
         msg = await bot.bot.send_message(chat_id=user_id, text=text_to_send)
         cur_time = msg.date.strftime("%Y-%m-%d %H:%M")
     except Exception:
-        cur_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+        cur_time = DateFunc.get_cur_time()
     deactivate_devices(user_id, turn_off_devices)
     for i in extend_devices:
         botDB.add_transaction(user_id, 0, PRICE, cur_time, f"Продление прописки: \"Устройство №{i}\"")
@@ -115,9 +109,9 @@ async def delete_clients_by_end_date(clients_to_delete, cur_date):
 
 
 async def check_payment_day():
-    cur_date = datetime.now().date().strftime("%Y-%m-%d")
+    cur_date = DateFunc.get_cur_date()
     clients_to_pay = botDB.get_clients_to_pay(cur_date)
-    clients_to_delete = botDB.get_clients_to_delete(get_next_date(cur_date, -2))
+    clients_to_delete = botDB.get_clients_to_delete(DateFunc.get_next_date(cur_date, -2))
     await delete_clients_by_end_date(clients_to_delete, cur_date)
     if len(clients_to_pay) == 0:
         logs.write(f'{cur_date}: no clients to delete after 2 months')

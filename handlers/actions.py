@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from aiogram.types import InputFile
 
 import Exceptions
+from DateFunc import DateFunc
 from shared import bot, botDB
 from Client import Client
 from Keys import Keys
@@ -53,11 +54,11 @@ def check_devices_num(user_id: int):
     return new_device_num
 
 
-def get_next_date(date_string: str = None, months: int = 1):
-    date = datetime.strptime(date_string, "%Y-%m-%d")
-    delta = relativedelta(months=months)
-    next_payment_date = date.replace(day=date.day) + delta
-    return next_payment_date.strftime("%Y-%m-%d")
+# def get_next_date(date_string: str = None, months: int = 1):
+#     date = datetime.strptime(date_string, "%Y-%m-%d")
+#     delta = relativedelta(months=months)
+#     next_payment_date = date.replace(day=date.day) + delta
+#     return next_payment_date.strftime("%Y-%m-%d")
 
 
 def transform_date_string_format(date_string: str, time=False):
@@ -103,11 +104,14 @@ def process_transaction(transaction: tuple):
 
 def get_user_payments_history(user_id: int):
     balance = botDB.get_balance(user_id)
+    cur_time = DateFunc.get_cur_time()
     text = f'Текущий баланс: {balance}₽\n\n'  # todo добавить строку актуально на момент
     result = botDB.get_transactions(user_id)
     for transaction in result:
         cur_transaction = process_transaction(transaction)
         text += cur_transaction + '\n\n'
+
+    text += f"Актуально на момент: {cur_time}."
 
     data_file_path = f'{PATH_TO_CLIENTS_FILES}/{user_id}_data.txt'
     with open(data_file_path, 'w', encoding='utf-8') as file:
@@ -139,10 +143,12 @@ async def callback_inline(call: types.CallbackQuery):
                                              reply_markup=get_back_to_previous_menu(DEVICES_CALLBACK))
             return
 
+        user_balance = botDB.get_balance(call.from_user.id)
+
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="После добавления устройства с вашего счета автоматически спишется сумма, "
                                               f"соответсвующая стоимости подписки в месяц за одно устройство - {PRICE}₽.\n"
-                                              "Убедитесь, что на вашем счете достаточно средств.",
+                                              f"На Вашем счете - {user_balance}₽.",
                                          reply_markup=get_add_device_confirmation_keyboard())
 
     if call.data == ADD_DEVICE_CONFIRMED_CALLBACK:
@@ -173,7 +179,8 @@ async def callback_inline(call: types.CallbackQuery):
         cur_time = new_message.date.strftime("%Y-%m-%d %H:%M")
         new_balance = balance - PRICE
 
-        next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
+        # next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
+        next_date = DateFunc.get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
         keys = Keys()
         try:
@@ -267,11 +274,12 @@ async def callback_inline(call: types.CallbackQuery):
 
     if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
+        user_balance = botDB.get_balance(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f"Устройство №{device_num}:\n"
                                               f"После продления подписки для данного устройства с вашего счета спишется сумма, "
                                               f"соответсвующая стоимости подписки в месяц - {PRICE}₽.\n"
-                                              f"Убедитесь, что на вашем счете достаточно средств.",
+                                              f"На Вашем счете - {user_balance}₽.",
                                          reply_markup=get_extend_subscription_confirmation_keyboard())
 
     if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
@@ -305,7 +313,7 @@ async def callback_inline(call: types.CallbackQuery):
         botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time,
                               f"Продление прописки: \"Устройство №{device_num}\"")
 
-        next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
+        next_date = DateFunc.get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
         botDB.change_client_activity(call.from_user.id, device_num, 1)
         botDB.update_client_end_date(call.from_user.id, device_num, next_date)

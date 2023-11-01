@@ -1,6 +1,6 @@
 from constants import server_launch
 
-TOKEN = '6693022227:AAFrh7oT-41IQ-pW5I_HWXhOZ1qwOOwRua0'
+TOKEN = '6693022227:AAHf6PphlZ8SqvILaoKAJHMYJOnwIxkRAH4'
 
 if server_launch:
     host_db = 'localhost'

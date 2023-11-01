@@ -1,6 +1,7 @@
 from datetime import datetime
 import qrcode
 from Client import Client
+from DateFunc import DateFunc
 from Ips import Ips
 from Keys import Keys
 from constants import *
@@ -81,8 +82,7 @@ class Files:
     def make_back_up_copy(cls, data: str = None):
         if not data:
             data = cls.get_data_from_server_file()
-        cur_time = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
-
+        cur_time = DateFunc.get_cur_time("%d-%m-%Y-%H-%M-%S")
         with open(f'{PATH_TO_META}/meta{cur_time}.conf', 'w') as meta_file:
             meta_file.write(data)
             meta_file.close()
