@@ -3,11 +3,6 @@ from Keys import Keys
 from constants import *
 
 
-class NoSuchClientExistsError(RuntimeError):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
-
 class Client:
     def __init__(self, user_id: int, device_num: int, ips: Ips, keys: Keys = None, end_date: str = None):
         self.user_id = user_id

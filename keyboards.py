@@ -35,8 +35,6 @@ def get_devices_keyboard(devices: list):
     for i in devices:
         keyboard.add(
             get_button(f"Устройство №{i[0]} {get_color_by_device_action(i[1])}", f"specific_device_callback#{i[0]}"))
-    # if len(devices) == 0:
-    #     keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
     if len(devices) < 3:
         keyboard.add(get_button(ADD_DEVICE_TEXT, ADD_DEVICE_CALLBACK))
     keyboard.add(BACK_TO_MAIN_MENU_BTN)
@@ -78,11 +76,12 @@ def get_not_enough_money_keyboard():
 
 def to_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton('Android', url='https://play.google.com/store/apps/details?id=com.wireguard.android'))
-    keyboard.add(InlineKeyboardButton('iOS', url='https://apps.apple.com/us/app/wireguard/id1441195209'))
-    keyboard.add(InlineKeyboardButton('PC', url='https://www.wireguard.com/install/'))
+    keyboard.add(InlineKeyboardButton('Android', url=WG_APP_ANDROID_LINK))
+    keyboard.add(InlineKeyboardButton('iOS', url=WG_APP_IOS_LINK))
+    keyboard.add(InlineKeyboardButton('PC', url=WG_APP_PC_LINK))
     keyboard.add(get_button("Перейти в меню", BACK_TO_MAIN_MENU_CALLBACK))
     return keyboard
+
 
 def get_back_to_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()

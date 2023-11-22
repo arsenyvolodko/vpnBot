@@ -79,3 +79,7 @@ FILL_UP_BALANCE_CALLBACKS_MAP = {FILL_UP_BALANCE_100_CALLBACK: 100, FILL_UP_BALA
 
 SOMETHING_WENT_WRONG_TEXT = 'К сожалению, что-то пошло не так :(\n' \
                             'Видимо, автор бота не умеет в БД.. пожалуйста, вернитесь в меню и попробуйте еще раз.'
+
+WG_APP_ANDROID_LINK = 'https://play.google.com/store/apps/details?id=com.wireguard.android'
+WG_APP_IOS_LINK = 'https://apps.apple.com/us/app/wireguard/id1441195209'
+WG_APP_PC_LINK = 'https://www.wireguard.com/install/'

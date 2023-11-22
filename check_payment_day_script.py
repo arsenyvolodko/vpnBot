@@ -1,11 +1,7 @@
 import asyncio
 import time
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-
 from shared import bot, botDB
 from Ips import Ips
-from constants import PRICE
 from files import Files
 from constants import *
 from DateFunc import DateFunc
@@ -16,7 +12,8 @@ def update_clients_end_date(user_id, extend_devices: list):
     new_date = DateFunc.get_next_date(cur_date)
     for device_num in extend_devices:
         botDB.update_client_end_date(user_id, device_num, new_date)
-        Files.write_to_logs(f'subscription extended for device {device_num} of user {user_id}'), str(__file__.split('/')[-1])
+        Files.write_to_logs(f'subscription extended for device {device_num} of user {user_id}'), str(
+            __file__.split('/')[-1])
 
 
 def deactivate_devices(user_id: int, devices: list):
@@ -24,7 +21,8 @@ def deactivate_devices(user_id: int, devices: list):
         botDB.change_client_activity(user_id, device_num, 0)
         client = botDB.get_client(user_id, device_num)
         Files.remove_client(client)
-        Files.write_to_logs(f'deactivate device: {device_num} for user {user_id} due to lack of funds', str(__file__.split('/')[-1]))
+        Files.write_to_logs(f'deactivate device: {device_num} for user {user_id} due to lack of funds',
+                            str(__file__.split('/')[-1]))
         time.sleep(1)
 
 
@@ -95,13 +93,14 @@ async def check_users_balances_for_subscription(user_device_map: dict):
         await extend_subscription(user, extend_devices, turn_off_devices)
 
 
-async def delete_clients_by_end_date(clients_to_delete, cur_date):
+async def delete_clients_by_end_date(clients_to_delete):
     for i in clients_to_delete:
         user_id, device_num = i
         ip = Ips(botDB.get_client_ip(user_id, device_num))
         botDB.remove_client_from_db(user_id, device_num)
         botDB.add_free_ips(ip)
-        Files.write_to_logs(f'client {device_num} for user {user_id} deleted after 2 months of inactivity', str(__file__.split('/')[-1]))
+        Files.write_to_logs(f'client {device_num} for user {user_id} deleted after 2 months of inactivity',
+                            str(__file__.split('/')[-1]))
         await bot.bot.send_message(chat_id=user_id,
                                    text=f"Устройство №{device_num} удалено, поскольку было неактивно в течение 2х "
                                         f"месяцев")
@@ -111,7 +110,7 @@ async def check_payment_day():
     cur_date = DateFunc.get_cur_date()
     clients_to_pay = botDB.get_clients_to_pay(cur_date)
     clients_to_delete = botDB.get_clients_to_delete(DateFunc.get_next_date(cur_date, -2))
-    await delete_clients_by_end_date(clients_to_delete, cur_date)
+    await delete_clients_by_end_date(clients_to_delete)
     if len(clients_to_pay) == 0:
         Files.write_to_logs('no clients to delete', str(__file__.split('/')[-1]))
         return

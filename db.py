@@ -1,65 +1,21 @@
-from datetime import datetime
-import threading
-
 import psycopg2
-import time
-
 import config
+
 from Exceptions.NoFreeIPsError import NoFreeIPsError
-from Client import Client, NoSuchClientExistsError
+from Client import Client
+from Exceptions.NoSuchClientExistsError import NoSuchClientExistsError
 from Ips import Ips
 from Keys import Keys
 from constants import PRICE
-from config import *
 
 
 class BotDB:
 
-    # def __init__(self):
-    #     self.conn = self.__connect()
-    #     self.__try_to_connect()
-    #
-    # def __pool_connection(self):
-    #     while True:
-    #         try:
-    #             # MESSAGES_CONTAINER.clear()
-    #             with self.conn, self.conn.cursor() as cursor:
-    #                 cursor.execute("SELECT")
-    #                 print(f"the connection is stable: {datetime.now()}")
-    #         except Exception as e:
-    #             print("ERROR: No connection to DB.")
-    #         time.sleep(60)
-    #
-    # def __try_to_connect(self):
-    #     try:
-    #         # cursor = self.__connect()
-    #         print("Successfully connected to DataBase")
-    #         db_thread = threading.Thread(target=self.__pool_connection)
-    #         db_thread.daemon = True  # Поток будет остановлен при завершении основного потока
-    #         db_thread.start()
-    #     except Exception as e:
-    #         print(e)
-    #         if "Unknown host" in str(e):
-    #             print("Probably, there's no internet connection. Check wi-fi connection!")
-    #         for i in range(5, 0, -1):
-    #             print(f"Next request in {i} seconds")
-    #             time.sleep(1)
-    #         print('\n')
-    #         self.__try_to_connect()
-    #
-    # def __connect(self):
-    #     conn = psycopg2.connect(host=host_db,
-    #                             port=port_db,
-    #                             database=database,
-    #                             user=user_db,
-    #                             password=password_db,
-    #                             keepalives=1)
-    #     return conn
-
     def __init__(self):
         self.conn = self.__connect()
 
-    def __connect(self):
+    @staticmethod
+    def __connect():
         conn = psycopg2.connect(
             host=config.host_db,
             port=config.port_db,
@@ -69,10 +25,9 @@ class BotDB:
         )
         return conn
 
-    ### BALANCE TABLE
+    # * balance table
     def user_exists(self, user_id: int):
         with self.conn, self.conn.cursor() as cursor:
-            # cursor.execute("SELECT id FROM balance_table WHERE user_id = %s", (user_id,))
             cursor.execute("SELECT user_id FROM balance_table WHERE user_id = %s", (user_id,))
             result = cursor.fetchone()
         return bool(result)
@@ -94,7 +49,7 @@ class BotDB:
             result = cursor.fetchone()
         return int(result[0])
 
-    ### CLIENT TABLE
+    # * clients table
 
     def add_client_to_db(self, client: Client):
         with self.conn, self.conn.cursor() as cursor:
@@ -119,7 +74,6 @@ class BotDB:
             result = cursor.fetchall()
             print(result)
         return result
-        # return list(map(lambda x: int(x[0]), result))
 
     def get_client(self, user_id: int, device_num: int):  # throws NoSuchClientExistsError
         with self.conn, self.conn.cursor() as cursor:
@@ -175,7 +129,7 @@ class BotDB:
             result = cursor.fetchone()
         return result[0]
 
-    ### FREE_IP DATABASE
+    # * free ips table
 
     def ip_exists_in_free_ips(self, ips: Ips):
         with self.conn, self.conn.cursor() as cursor:
@@ -214,7 +168,7 @@ class BotDB:
                 raise NoFreeIPsError("No free Ips available")
         return ips
 
-    ### transactions
+    # * transactions table
 
     def add_user(self, user_id: int):
         if self.user_exists(user_id):
@@ -225,19 +179,6 @@ class BotDB:
             self.conn.commit()
 
     def add_transaction(self, user_id: int, operation_type: int, value: int, operation_time: str, comment: str = ''):
-        # balance = self.get_balance(user_id)
-        # try:
-        #     if operation_type == 1:
-        #         self.update_balance(user_id, balance + value)
-        #     else:
-        #         if balance < value:
-        #             raise NotEnoughMoneyError(f"Not enough money to write off. value: {value}, balance: {balance}.")
-        #         else:
-        #             self.update_balance(user_id, balance - value)
-        #
-        # except AssertionError as e:
-        #     raise NotEnoughMoneyError(e)
-
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("INSERT INTO transactions "
                            "(user_id, operation_type, value, operation_time, comment) "

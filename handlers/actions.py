@@ -2,8 +2,6 @@ import os
 import re
 from datetime import datetime
 from io import BytesIO
-
-from dateutil.relativedelta import relativedelta
 from aiogram.types import InputFile
 
 import Exceptions
@@ -54,12 +52,6 @@ def check_devices_num(user_id: int):
     return new_device_num
 
 
-# def get_next_date(date_string: str = None, months: int = 1):
-#     date = datetime.strptime(date_string, "%Y-%m-%d")
-#     delta = relativedelta(months=months)
-#     next_payment_date = date.replace(day=date.day) + delta
-#     return next_payment_date.strftime("%Y-%m-%d")
-
 
 def transform_date_string_format(date_string: str, time=False):
     if time:
@@ -105,7 +97,7 @@ def process_transaction(transaction: tuple):
 def get_user_payments_history(user_id: int):
     balance = botDB.get_balance(user_id)
     cur_time = DateFunc.get_cur_time()
-    text = f'Текущий баланс: {balance}₽\n\n'  # todo добавить строку актуально на момент
+    text = f'Текущий баланс: {balance}₽\n\n'
     result = botDB.get_transactions(user_id)
     for transaction in result:
         cur_transaction = process_transaction(transaction)
