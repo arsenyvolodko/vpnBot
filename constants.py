@@ -1,4 +1,4 @@
-server_launch = True
+server_launch = False
 
 PRICE = 100  # ₽
 

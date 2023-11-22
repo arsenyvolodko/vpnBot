@@ -1,9 +1,6 @@
-from datetime import datetime
 import qrcode
 from Client import Client
 from DateFunc import DateFunc
-from Ips import Ips
-from Keys import Keys
 from constants import *
 
 
@@ -98,3 +95,12 @@ class Files:
             file.write(new_data)
             file.close()
             return True
+
+    @classmethod
+    def write_to_logs(cls, text: str, comment: str = None):
+        cur_time = DateFunc.get_cur_time()
+        with open(PATH_TO_LOGS, 'a') as logs:
+            if comment:
+                logs.write(f'{cur_time}, ({comment}): {text}\n')
+            else:
+                logs.write(f'{cur_time}, {text}\n')
