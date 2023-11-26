@@ -107,4 +107,4 @@ class Files:
 
     @classmethod
     def run_bash_sync_script(cls):
-        call("./sync_iter.sh")
+        call("/home/vpnBot/sync_iter.sh")
