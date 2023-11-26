@@ -100,7 +100,6 @@ class BotDB:
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("SELECT device_num, active FROM clients WHERE user_id = %s ORDER BY device_num", (user_id,))
             result = cursor.fetchall()
-            # print(result)
         return result
 
     def get_client(self, user_id: int, device_num: int):  # throws NoSuchClientExistsError
@@ -173,13 +172,10 @@ class BotDB:
 
     def add_free_ips(self, ips: Ips):
         if not self.ip_exists_in_clients(ips):
-            print("not in clients")
             if not self.ip_exists_in_free_ips(ips):
-                print("not in free ip's")
                 with self.conn, self.conn.cursor() as cursor:
                     cursor.execute("INSERT INTO free_ips (ipv4) VALUES (%s)", (ips.get_ipv4(True),))
                     self.conn.commit()
-                    print('added')
                     return True
         else:
             return False

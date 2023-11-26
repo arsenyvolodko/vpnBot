@@ -51,7 +51,6 @@ def get_add_device_confirmation_keyboard():
 
 
 def get_specific_device_keyboard(active: bool):
-    print(active)
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(get_button(GET_QR_AND_CONFIG_TEXT, GET_QR_AND_CONFIG_CALLBACK))
     keyboard.add(get_button(DELETE_DEVICE_TEXT, DELETE_DEVICE_CALLBACK))
