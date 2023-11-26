@@ -4,7 +4,7 @@ import dateutil.relativedelta
 
 
 class DateFunc:
-    delta_hours = 3 if server_launch else 0
+    delta_hours = 0 if server_launch else 0
 
     @classmethod
     def get_cur_date(cls, date_format: str = "%Y-%m-%d"):

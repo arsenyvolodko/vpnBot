@@ -157,7 +157,7 @@ async def callback_inline(call: types.CallbackQuery):
 
         new_message = await call.bot.send_message(chat_id=call.from_user.id,
                                                   text="Проверяем данные. Это займет несколько секунд.")
-        # try:
+
         new_device_num = check_devices_num(call.from_user.id)
 
         if new_device_num is False:
@@ -193,6 +193,8 @@ async def callback_inline(call: types.CallbackQuery):
                                                   "за то, что не оправдали Ваших ожиданий. Мы напишем Вам, когда исправим проблему и "
                                                   "предоставим 3 месяца подписки бесплатно.\nЕсли вы уже пополнили свой баланс, но хотите "
                                                   "вывести средства обратно, напишите @arseny_volodko.")
+
+            Files.write_to_logs("no more free IPs available, user: @{call.from_user.username}")
             return
 
         client = Client(call.from_user.id, new_device_num, ips, keys, next_date)
@@ -201,7 +203,7 @@ async def callback_inline(call: types.CallbackQuery):
         updated = Files.update_server_config_file(client)
         sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
 
-        if not(updated and sent):
+        if not (updated and sent):
             try:
                 await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                                  text=SOMETHING_WENT_WRONG_TEXT,
@@ -253,7 +255,7 @@ async def callback_inline(call: types.CallbackQuery):
         removed_from_server_config = Files.remove_client(client)
         removed_from_db = botDB.remove_client_from_db(client.user_id, client.device_num)
 
-        if not removed_from_db or not removed_from_server_config:
+        if not (removed_from_db and removed_from_server_config):
             call.bot.edit_message_text(call.from_user.id, call.message.message_id,
                                        SOMETHING_WENT_WRONG_TEXT, get_back_to_main_menu_keyboard())
             return
@@ -306,14 +308,25 @@ async def callback_inline(call: types.CallbackQuery):
                                        text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
             return
 
+        client = botDB.get_client(call.from_user.id, device_num)
+        extended = Files.update_server_config_file(client)
+
+        if not extended:
+            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
+                                             text=SOMETHING_WENT_WRONG_TEXT,
+                                             reply_markup=get_back_to_main_menu_keyboard())
+            return
+
         botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time,
                               f"Продление прописки: \"Устройство №{device_num}\"")
+
+        Files.write_to_logs(
+            f"user {call.from_user.username} {call.from_user.id} extended subscription fot device №{device_num}")
 
         next_date = DateFunc.get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
         botDB.change_client_activity(call.from_user.id, device_num, 1)
         botDB.update_client_end_date(call.from_user.id, device_num, next_date)
-        client = botDB.get_client(call.from_user.id, device_num)
 
         await call.bot.delete_message(call.from_user.id, new_message.message_id)
         await call.bot.send_message(chat_id=call.from_user.id,
@@ -321,10 +334,6 @@ async def callback_inline(call: types.CallbackQuery):
                                          f"Следующее списание будет произведено автоматически {transform_date_string_format(next_date)}.\n"
                                          f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
                                     reply_markup=get_back_to_main_menu_keyboard())
-
-        Files.update_server_config_file(client)
-
-        print(device_num)
 
     if call.data == PROMOCODES_CALLBACK:
         botDB.set_promo_flag(call.from_user.id, 1)
@@ -366,10 +375,13 @@ async def callback_inline(call: types.CallbackQuery):
 
             botDB.add_transaction(call.from_user.id, 1, sum_value, DateFunc.get_cur_time(),
                                   'Пополнение баланса')
+
+            Files.write_to_logs(f"user {call.from_user.id} filled up balance for {sum_value}₽")
         else:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                              text=SOMETHING_WENT_WRONG_TEXT,
                                              reply_markup=get_back_to_main_menu_keyboard())
+            Files.write_to_logs(f"failed to fill up balance for {sum_value}₽ for user {call.from_user.id}")
 
     if call.data == INVITING_LINKS_CALLBACK:
         uniq_link = BASE_URL + f'?start={call.from_user.id}'
@@ -398,12 +410,16 @@ async def fill_up_balance_actions_for_message(message: types.Message, delta_valu
                                        reply_markup=get_back_to_main_menu_keyboard())
         botDB.add_transaction(to_user_id, 1, delta_value, DateFunc.get_cur_time(),
                               trans_text)
+        if promo_use:
+            Files.write_to_logs(f"user {message.from_user.id} used promocode for {delta_value}₽")
         return True
     else:
         await message.bot.send_message(chat_id=to_user_id,
                                        text=SOMETHING_WENT_WRONG_TEXT,
                                        reply_markup=get_back_to_main_menu_keyboard())
+        Files.write_to_logs(f"user {message.from_user.id} failed to use promocode for {delta_value}₽")
         return False
+
 
 
 @bot.message_handler()

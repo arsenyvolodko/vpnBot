@@ -132,6 +132,7 @@ async def schedule_check_payment_day():
 
 
 if __name__ == '__main__':
+    Files.make_back_up_copy()
     try:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(schedule_check_payment_day())

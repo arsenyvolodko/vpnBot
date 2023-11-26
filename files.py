@@ -66,11 +66,6 @@ class Files:
         return new_data
 
     @classmethod
-    def add_client(cls, client: Client):
-        cls.create_client_config_file(client)
-        cls.update_server_config_file(client)
-
-    @classmethod
     def get_data_from_server_file(cls):
         data = ''
         with open(PATH_TO_CONFIG, 'r') as file:
@@ -80,9 +75,8 @@ class Files:
         return data
 
     @classmethod
-    def make_back_up_copy(cls, data: str = None):
-        if not data:
-            data = cls.get_data_from_server_file()
+    def make_back_up_copy(cls):
+        data = cls.get_data_from_server_file()
         cur_time = DateFunc.get_cur_time("%d-%m-%Y-%H-%M-%S")
         with open(f'{PATH_TO_META}/meta{cur_time}.conf', 'w') as meta_file:
             meta_file.write(data)
@@ -112,4 +106,4 @@ class Files:
 
     @classmethod
     def run_bash_sync_script(cls):
-        rc = call("./sync_iter.sh")
+        call("./sync_iter.sh")
