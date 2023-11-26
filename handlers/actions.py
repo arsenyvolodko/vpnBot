@@ -261,7 +261,7 @@ async def callback_inline(call: types.CallbackQuery):
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f'\"Устройство №{device_num}\" успешно удалено',
                                          reply_markup=get_back_to_main_menu_keyboard())
-        Files.write_to_logs(f"user {call.from_user.id} removed device number {clientg.device_num}.")
+        Files.write_to_logs(f"user {call.from_user.id} removed device number {client.device_num}.")
         res = botDB.add_free_ips(client.ips)
         if res:
             Files.write_to_logs(f"successfully added ips to db: {client.ips.get_ipv4()}")
