@@ -132,6 +132,7 @@ async def schedule_check_payment_day():
 
 
 if __name__ == '__main__':
+    Files.write_to_logs("started execution every_day_script")
     Files.make_back_up_copy()
     try:
         loop = asyncio.get_event_loop()
@@ -141,3 +142,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
     Files.run_bash_sync_script()
+    Files.write_to_logs("ended execution every_day_script")
