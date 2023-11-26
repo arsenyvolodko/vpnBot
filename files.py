@@ -2,6 +2,7 @@ import qrcode
 from Client import Client
 from DateFunc import DateFunc
 from constants import *
+from subprocess import call
 
 
 class Files:
@@ -32,6 +33,7 @@ class Files:
         with open(PATH_TO_CONFIG, 'a') as file:
             file.write(new_data)
             file.close()
+        cls.run_bash_sync_script()
         return True
 
     @classmethod
@@ -89,10 +91,12 @@ class Files:
         old_data = cls.get_data_from_server_file()
 
         new_data = old_data.replace(data_to_delete, '', 1)
+        if new_data == old_data:
+            return False
         with open(PATH_TO_CONFIG, 'w') as file:
             file.write(new_data)
-            file.close()
-            return True
+        cls.run_bash_sync_script()
+        return True
 
     @classmethod
     def write_to_logs(cls, text: str, comment: str = None):
@@ -102,3 +106,7 @@ class Files:
                 logs.write(f'{cur_time}, ({comment}): {text}\n')
             else:
                 logs.write(f'{cur_time}, {text}\n')
+
+    @classmethod
+    def run_bash_sync_script(cls):
+        rc = call("./sync_inter.sh")
