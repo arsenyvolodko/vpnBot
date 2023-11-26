@@ -70,16 +70,18 @@ def transform_date_string_format(date_string: str, time=False):
 
 
 async def send_config_and_qr(call: types.CallbackQuery, config_file_path: str, qr_code_file_path: str):
-    with open(config_file_path, 'rb') as config_file:
-        file_data = BytesIO(config_file.read())
-        doc1 = await call.bot.send_document(chat_id=call.from_user.id,
-                                            document=InputFile(file_data, filename='NexVpn.conf'))
-    doc2 = await call.bot.send_photo(call.from_user.id, open(f'{qr_code_file_path}', 'rb'))
-    if doc1 and doc2:
-        delete_tmp_client_file(config_file_path)
-        delete_tmp_client_file(qr_code_file_path)
-        return True
-    return False
+    try:
+        with open(config_file_path, 'rb') as config_file:
+            file_data = BytesIO(config_file.read())
+            doc1 = await call.bot.send_document(chat_id=call.from_user.id,
+                                                document=InputFile(file_data, filename='NexVpn.conf'))
+        doc2 = await call.bot.send_photo(call.from_user.id, open(f'{qr_code_file_path}', 'rb'))
+        if doc1 and doc2:
+            delete_tmp_client_file(config_file_path)
+            delete_tmp_client_file(qr_code_file_path)
+            return True
+    except Exception:
+        return False
 
 
 def delete_tmp_client_file(file_name: str):
@@ -197,22 +199,16 @@ async def callback_inline(call: types.CallbackQuery):
         botDB.add_client_to_db(client)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
         updated = Files.update_server_config_file(client)
-        error_flag = False
-        if updated:
-            sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
-            if not sent:
-                error_flag = True
-        else:
-            error_flag = True
+        sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
 
-        if error_flag:
+        if not(updated and sent):
             try:
-                botDB.remove_client_from_db(client.user_id, client.device_num)
-                Files.remove_client(client)
-                botDB.add_free_ips(ips)
                 await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                                  text=SOMETHING_WENT_WRONG_TEXT,
                                                  reply_markup=get_back_to_main_menu_keyboard())
+                botDB.remove_client_from_db(client.user_id, client.device_num)
+                botDB.add_free_ips(ips)
+                Files.remove_client(client)
             except Exception:
                 pass
             return

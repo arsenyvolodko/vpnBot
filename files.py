@@ -29,12 +29,15 @@ class Files:
 
     @classmethod
     def update_server_config_file(cls, client: Client):
-        new_data = cls.gen_data_for_server_config_file(client)
-        with open(PATH_TO_CONFIG, 'a') as file:
-            file.write(new_data)
-            file.close()
-        cls.run_bash_sync_script()
-        return True
+        try:
+            new_data = cls.gen_data_for_server_config_file(client)
+            with open(PATH_TO_CONFIG, 'a') as file:
+                file.write(new_data)
+                file.close()
+            cls.run_bash_sync_script()
+            return True
+        except Exception as e:
+            return False
 
     @classmethod
     def gen_data_for_client_config_file(cls, client: Client):
