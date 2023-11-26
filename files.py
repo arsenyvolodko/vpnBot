@@ -109,4 +109,4 @@ class Files:
 
     @classmethod
     def run_bash_sync_script(cls):
-        rc = call("./sync_inter.sh")
+        rc = call("./sync_iter.sh")

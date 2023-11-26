@@ -1,0 +1,3 @@
+source venv/bin/activate
+
+ps ax | grep main.py => kill PID
