@@ -19,6 +19,8 @@ def get_main_menu_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(get_button(DEVICES_TEXT, DEVICES_CALLBACK))
     keyboard.add(get_button(FINANCE_TEXT, FINANCE_CALLBACK))
+    keyboard.add(get_button(PROMOCODES_TEXT, PROMOCODES_CALLBACK))
+    keyboard.add(get_button(INVITING_LINKS_TEXT, INVITING_LINKS_CALLBACK))
     return keyboard
 
 

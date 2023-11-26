@@ -49,6 +49,34 @@ class BotDB:
             result = cursor.fetchone()
         return int(result[0])
 
+    def set_promo_flag(self, user_id: int, value: int):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("UPDATE balance_table SET promo_flag = %s WHERE user_id = %s",
+                           (value, user_id))
+            self.conn.commit()
+
+    def get_promo_flag(self, user_id: int):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("SELECT promo_flag FROM balance_table WHERE user_id = %s", (user_id,))
+            result = cursor.fetchone()
+            if result and len(result):
+                return bool(result[0])
+        return False
+
+    # promocodes
+
+    def get_used_promocodes(self, user_id: int):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("SELECT promo FROM promocodes WHERE user_id = %s", (user_id,))
+            result = cursor.fetchall()
+        return result
+
+    def add_used_promocode(self, user_id: int, promocode: str):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("INSERT INTO promocodes (user_id, promo) VALUES (%s, %s)", (user_id, promocode))
+            self.conn.commit()
+            return True
+
     # * clients table
 
     def add_client_to_db(self, client: Client):
@@ -72,7 +100,7 @@ class BotDB:
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("SELECT device_num, active FROM clients WHERE user_id = %s ORDER BY device_num", (user_id,))
             result = cursor.fetchall()
-            print(result)
+            # print(result)
         return result
 
     def get_client(self, user_id: int, device_num: int):  # throws NoSuchClientExistsError
@@ -156,7 +184,7 @@ class BotDB:
         else:
             return False
 
-    def get_next_free_ips(self):  # todo add no more free ips error
+    def get_next_free_ips(self):
         with self.conn, self.conn.cursor() as cursor:
             cursor.execute("SELECT ipv4 FROM free_ips WHERE id = (SELECT MIN(id) FROM free_ips)")
             row = cursor.fetchone()
@@ -170,12 +198,14 @@ class BotDB:
 
     # * transactions table
 
-    def add_user(self, user_id: int):
+    def add_user(self, username: int, user_id: int):
         if self.user_exists(user_id):
             return
+        if username is None:
+            username = "unknown"
         with self.conn, self.conn.cursor() as cursor:
-            print(user_id, PRICE)
-            cursor.execute("INSERT INTO balance_table (user_id, balance) VALUES (%s, %s)", (user_id, PRICE))
+            cursor.execute("INSERT INTO balance_table (user_id, username, balance) VALUES (%s, %s, %s)",
+                           (user_id, username, PRICE))
             self.conn.commit()
 
     def add_transaction(self, user_id: int, operation_type: int, value: int, operation_time: str, comment: str = ''):

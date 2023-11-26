@@ -29,7 +29,6 @@ class Files:
     @classmethod
     def update_server_config_file(cls, client: Client):
         new_data = cls.gen_data_for_server_config_file(client)
-        cls.make_back_up_copy()
         with open(PATH_TO_CONFIG, 'a') as file:
             file.write(new_data)
             file.close()
@@ -88,7 +87,6 @@ class Files:
     def remove_client(cls, client: Client):
         data_to_delete = cls.gen_data_for_server_config_file(client)
         old_data = cls.get_data_from_server_file()
-        cls.make_back_up_copy(old_data)
 
         new_data = old_data.replace(data_to_delete, '', 1)
         with open(PATH_TO_CONFIG, 'w') as file:

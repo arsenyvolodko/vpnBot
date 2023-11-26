@@ -1,4 +1,4 @@
-server_launch = False
+server_launch = True
 
 PRICE = 100  # ₽
 
@@ -7,7 +7,7 @@ BACK_TO_MAIN_MENU_CALLBACK = 'back_to_main_menu_callback'
 BACK_TO_PREV_MENU_TEXT = 'Назад'
 CONTINUE_TEXT = 'Продолжить'
 MY_ID = 506954303
-
+BASE_URL = 'https://t.me/CyberNexVpnBot'
 
 MAIN_MENU_TEXT = '''
 Меню\n
@@ -59,6 +59,12 @@ FILL_UP_CALLBACK = 'fill_up_balance'
 PAYMENTS_HISTORY_TEXT = 'История транзакций'
 PAYMENTS_HISTORY_CALLBACK = 'payments_history_callback'
 
+PROMOCODES_TEXT = "Ввести промокод"
+PROMOCODES_CALLBACK = 'promocodes_callback'
+
+INVITING_LINKS_TEXT = "Пригласительные ссылки"
+INVITING_LINKS_CALLBACK = 'inviting_links_callback'
+
 FILL_UP_BALANCE_100_TEXT = '100₽'
 FILL_UP_BALANCE_200_TEXT = '200₽'
 FILL_UP_BALANCE_300_TEXT = '300₽'
@@ -83,3 +89,9 @@ SOMETHING_WENT_WRONG_TEXT = 'К сожалению, что-то пошло не 
 WG_APP_ANDROID_LINK = 'https://play.google.com/store/apps/details?id=com.wireguard.android'
 WG_APP_IOS_LINK = 'https://apps.apple.com/us/app/wireguard/id1441195209'
 WG_APP_PC_LINK = 'https://www.wireguard.com/install/'
+
+PROMOCODES = {
+    "code1": 100,
+    "code2": 200,
+    "code3": 300
+}

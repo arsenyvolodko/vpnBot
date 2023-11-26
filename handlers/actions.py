@@ -19,9 +19,14 @@ async def welcome_message(message: types.Message):
     sent_message = await message.bot.send_message(message.from_user.id, START_TEXT,
                                                   reply_markup=to_main_menu_keyboard())
     if not botDB.user_exists(message.from_user.id):
-        botDB.add_user(message.from_user.id)
+        botDB.add_user(message.from_user.username, message.from_user.id)
         botDB.add_transaction(message.from_user.id, 1, PRICE, sent_message.date.strftime("%Y-%m-%d %H:%M"),
                               'Стартовый баланс')
+        if message.get_args():
+            await handle_new_user_by_link(message)
+            Files.write_to_logs(
+                f"New user: {message.from_user.username}: {message.from_user.id} invited by {message.get_args()}")
+        Files.write_to_logs(f"New user: {message.from_user.username}: {message.from_user.id}")
 
 
 @bot.message_handler(commands=["menu"])
@@ -30,17 +35,19 @@ async def menu_message(message: types.Message):
         await message.bot.send_message(message.from_user.id, MAIN_MENU_TEXT,
                                        reply_markup=get_main_menu_keyboard())
         return
-
-    sent_message = await message.bot.send_message(message.from_user.id, START_TEXT,
-                                                  reply_markup=to_main_menu_keyboard())
-    botDB.add_user(message.from_user.id)
-    botDB.add_transaction(message.from_user.id, 1, PRICE, sent_message.date.strftime("%Y-%m-%d %H:%M"),
-                          'Стартовый баланс')
+    await message.bot.send_message(message.from_user.id,
+                                   "Используйте команду /start для того, чтобы начать пользоваться ботом.")
 
 
-@bot.message_handler(commands="devices")
-async def devices(message: types.Message):
-    botDB.get_user_devices(message.from_user.id)
+async def handle_new_user_by_link(message: types.Message):
+    from_user_id = int(message.get_args())
+    res = await fill_up_balance_actions_for_message(message, 50, False, from_user_id)
+    if res:
+        Files.write_to_logs(f"начислено 50₽ пользователю {from_user_id} за приглашение нового пользователя")
+    else:
+        await message.bot.send_message(chat_id=from_user_id,
+                                       text="Вы успешно пригласили нового пользователя, но произошла какая-то ошибка. Напишите @arseny_volodko.")
+        Files.write_to_logs(f"ошибка начисления средств пользователю {from_user_id} за приглашение")
 
 
 def check_devices_num(user_id: int):
@@ -50,7 +57,6 @@ def check_devices_num(user_id: int):
     devices_nums = [i[0] for i in user_devices]
     new_device_num = 1 if len(user_devices) == 0 else max(devices_nums) + 1
     return new_device_num
-
 
 
 def transform_date_string_format(date_string: str, time=False):
@@ -171,7 +177,6 @@ async def callback_inline(call: types.CallbackQuery):
         cur_time = new_message.date.strftime("%Y-%m-%d %H:%M")
         new_balance = balance - PRICE
 
-        # next_date = get_next_date(new_message.date.strftime("%Y-%m-%d"))
         next_date = DateFunc.get_next_date(new_message.date.strftime("%Y-%m-%d"))
 
         keys = Keys()
@@ -222,8 +227,7 @@ async def callback_inline(call: types.CallbackQuery):
                                          f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
                                     reply_markup=get_back_to_main_menu_keyboard())
 
-        with open(PATH_TO_LOGS, 'a') as logs:
-            logs.write(f"user {client.user_id} added device {client.device_num}")
+        Files.write_to_logs(f"user {client.user_id} added device {client.device_num}")
 
     if 'specific_device_callback#' in call.data:
         device_num = int(re.sub('specific_device_callback#', '', call.data))
@@ -322,6 +326,12 @@ async def callback_inline(call: types.CallbackQuery):
 
         print(device_num)
 
+    if call.data == PROMOCODES_CALLBACK:
+        botDB.set_promo_flag(call.from_user.id, 1)
+        await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                         text=f"Введите промокод",
+                                         reply_markup=get_back_to_previous_menu(BACK_TO_MAIN_MENU_CALLBACK))
+
     # finance
 
     if call.data == FINANCE_CALLBACK:
@@ -346,8 +356,6 @@ async def callback_inline(call: types.CallbackQuery):
 
     if call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
         sum_value = FILL_UP_BALANCE_CALLBACKS_MAP[call.data]
-        sent_message = await call.bot.send_message(chat_id=call.from_user.id, text="ок")
-        await call.bot.delete_message(chat_id=call.from_user.id, message_id=sent_message.message_id)
         balance = botDB.get_balance(call.from_user.id)
         new_balance = balance + sum_value
         balance_updated = botDB.update_balance(call.from_user.id, new_balance)
@@ -356,9 +364,69 @@ async def callback_inline(call: types.CallbackQuery):
                                              text=f"Ваш баланс успешно пополнен на {sum_value}₽",
                                              reply_markup=get_back_to_main_menu_keyboard())
 
-            botDB.add_transaction(call.from_user.id, 1, sum_value, sent_message.date.strftime("%Y-%m-%d %H:%M"),
+            botDB.add_transaction(call.from_user.id, 1, sum_value, DateFunc.get_cur_time(),
                                   'Пополнение баланса')
         else:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                              text=SOMETHING_WENT_WRONG_TEXT,
                                              reply_markup=get_back_to_main_menu_keyboard())
+
+    if call.data == INVITING_LINKS_CALLBACK:
+        uniq_link = BASE_URL + f'?start={call.from_user.id}'
+        await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                         text="Вы можете пригласить друзей и получить 50₽ за каждого нового пользователя, "
+                                              f"перешедшего по вашей пригласительной ссылке: {uniq_link}",
+                                         reply_markup=get_back_to_main_menu_keyboard())
+
+
+async def fill_up_balance_actions_for_message(message: types.Message, delta_value: int, promo_use: bool,
+                                              to_user_id: int | None = None):
+    if promo_use:
+        send_text = f"Промокод успешно применен. Ваш баланс пополнен на {delta_value}₽"
+        trans_text = "Применение промокода"
+        to_user_id = message.from_user.id
+    else:
+        send_text = f"Вам начислено {delta_value}₽ за приглашение нового пользователя."
+        trans_text = "Приглашение нового пользователя"
+    balance = botDB.get_balance(to_user_id)
+    new_balance = balance + delta_value
+    balance_updated = botDB.update_balance(to_user_id, new_balance)
+
+    if balance_updated:
+        await message.bot.send_message(chat_id=to_user_id,
+                                       text=send_text,
+                                       reply_markup=get_back_to_main_menu_keyboard())
+        botDB.add_transaction(to_user_id, 1, delta_value, DateFunc.get_cur_time(),
+                              trans_text)
+        return True
+    else:
+        await message.bot.send_message(chat_id=to_user_id,
+                                       text=SOMETHING_WENT_WRONG_TEXT,
+                                       reply_markup=get_back_to_main_menu_keyboard())
+        return False
+
+
+@bot.message_handler()
+async def answer_message(message: types.Message):
+    promo_flag = botDB.get_promo_flag(message.from_user.id)
+    botDB.set_promo_flag(message.from_user.id, 0)
+    if not promo_flag:
+        return
+
+    used_promocodes = botDB.get_used_promocodes(message.from_user.id)
+    if message.text in used_promocodes:
+        await message.bot.send_message(message.from_user.id, "Вы уже воспользовались этим промокодом.",
+                                       reply_markup=get_back_to_previous_menu(BACK_TO_MAIN_MENU_CALLBACK))
+        return
+
+    if message.text not in PROMOCODES:
+        await message.bot.send_message(message.from_user.id, "Кажется, такого промокода не существует.",
+                                       reply_markup=get_back_to_previous_menu(BACK_TO_MAIN_MENU_CALLBACK))
+        return
+
+    promo_value = PROMOCODES[message.text]
+    updated = await fill_up_balance_actions_for_message(message, promo_value, promo_use=True)
+    if updated:
+        botDB.add_used_promocode(message.from_user.id, message.text)
+    Files.write_to_logs(
+        f"Пользователь {message.from_user.id} воспользовался промокодом {message.text} и получил {promo_value}₽")
