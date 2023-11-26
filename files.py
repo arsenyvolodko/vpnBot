@@ -83,7 +83,7 @@ class Files:
             meta_file.close()
 
     @classmethod
-    def remove_client(cls, client: Client):
+    def remove_client(cls, client: Client, sync=True):
         data_to_delete = cls.gen_data_for_server_config_file(client)
         old_data = cls.get_data_from_server_file()
 
@@ -92,7 +92,8 @@ class Files:
             return False
         with open(PATH_TO_CONFIG, 'w') as file:
             file.write(new_data)
-        cls.run_bash_sync_script()
+        if sync:
+            cls.run_bash_sync_script()
         return True
 
     @classmethod

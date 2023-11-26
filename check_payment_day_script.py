@@ -20,7 +20,7 @@ def deactivate_devices(user_id: int, devices: list):
     for device_num in devices:
         botDB.change_client_activity(user_id, device_num, 0)
         client = botDB.get_client(user_id, device_num)
-        Files.remove_client(client)
+        Files.remove_client(client, False)
         Files.write_to_logs(f'deactivate device: {device_num} for user {user_id} due to lack of funds',
                             str(__file__.split('/')[-1]))
         time.sleep(1)
@@ -140,3 +140,4 @@ if __name__ == '__main__':
         loop.close()
     except Exception as e:
         print(e)
+    Files.run_bash_sync_script()

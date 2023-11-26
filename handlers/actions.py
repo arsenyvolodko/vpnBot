@@ -201,7 +201,10 @@ async def callback_inline(call: types.CallbackQuery):
         botDB.add_client_to_db(client)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
         updated = Files.update_server_config_file(client)
-        sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
+        if updated:
+            sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
+        else:
+            sent = False
 
         if not (updated and sent):
             try:
@@ -350,7 +353,6 @@ async def callback_inline(call: types.CallbackQuery):
 
     if call.data == PAYMENTS_HISTORY_CALLBACK:
         user_data_file_path = get_user_payments_history(call.from_user.id)
-        # await call.bot.send_document(call.from_user.id, ('balance history.txt', user_data_file_path))
         with open(user_data_file_path, 'rb') as file:
             file_data = BytesIO(file.read())
             await call.bot.send_document(chat_id=call.from_user.id, document=InputFile(file_data,
