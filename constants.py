@@ -1,6 +1,6 @@
 server_launch = True
 
-PRICE = 100  # ₽
+PRICE = 10  # ₽
 
 BACK_TO_MAIN_MENU_TEXT = 'Вернуться в меню'
 BACK_TO_MAIN_MENU_CALLBACK = 'back_to_main_menu_callback'
