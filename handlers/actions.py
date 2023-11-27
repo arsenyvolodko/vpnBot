@@ -235,12 +235,12 @@ async def callback_inline(call: types.CallbackQuery):
         active = botDB.check_if_active(call.from_user.id, device_num)
         if active:
             status = 'активно'
-            sub_info = f"Следующее списание: {transform_date_string_format(botDB.get_client_end_date(call.from_user.id, device_num))}"
+            sub_info = f"Следующее списание: {transform_date_string_format(botDB.get_client_end_date(call.from_user.id, device_num))}."
         else:
             status = 'неактивно'
             sub_info = f'Если не продлить подписку до {DateFunc.get_next_date(botDB.get_client_end_date(call.from_user.id, device_num), days=0, months=2)}, то устройство будет удалено.'
         device_info_text = (f"Устройство №{device_num}.\n"
-                            f"статус: {status}\n"
+                            f"Cтатус: {status}.\n"
                             f"{sub_info}")
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=device_info_text,
@@ -363,7 +363,7 @@ async def callback_inline(call: types.CallbackQuery):
     elif call.data == FINANCE_CALLBACK:
         balance = botDB.get_balance(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                         text=f"На Вашем счете: {balance}₽", reply_markup=get_finance_keyboard())
+                                         text=f"На Вашем счете: {balance}₽.", reply_markup=get_finance_keyboard())
 
     elif call.data == PAYMENTS_HISTORY_CALLBACK:
         user_data_file_path = get_user_payments_history(call.from_user.id)
@@ -382,22 +382,23 @@ async def callback_inline(call: types.CallbackQuery):
     elif call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
         sum_value = FILL_UP_BALANCE_CALLBACKS_MAP[call.data]
         balance = botDB.get_balance(call.from_user.id)
-        if balance >= 300:
+        if balance + sum_value >= 300:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                             text=f"Поскольку бот работает в тестовом режиме, то пополнить счет более, чем на 300₽ нельзя.",
+                                             text=f"Поскольку бот работает в тестовом режиме, сумма средств на счете временно ограничена 300₽.\n"
+                                                  f"На вашем счете: {balance}₽.",
                                              reply_markup=get_back_to_main_menu_keyboard())
             return
         new_balance = balance + sum_value
         balance_updated = botDB.update_balance(call.from_user.id, new_balance)
         if balance_updated:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                             text=f"Ваш баланс успешно пополнен на {sum_value}₽",
+                                             text=f"Ваш баланс успешно пополнен на {sum_value}₽.",
                                              reply_markup=get_back_to_main_menu_keyboard())
 
             botDB.add_transaction(call.from_user.id, 1, sum_value, DateFunc.get_cur_time(),
                                   'Пополнение баланса')
 
-            Files.write_to_logs(f"user {call.from_user.id} filled up balance for {sum_value}₽")
+            Files.write_to_logs(f"user {call.from_user.id} filled up balance for {sum_value}₽.")
         else:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                              text=SOMETHING_WENT_WRONG_TEXT,
@@ -415,7 +416,7 @@ async def callback_inline(call: types.CallbackQuery):
 async def fill_up_balance_actions_for_message(message: types.Message, delta_value: int, promo_use: bool,
                                               to_user_id: int | None = None):
     if promo_use:
-        send_text = f"Промокод успешно применен. Ваш баланс пополнен на {delta_value}₽"
+        send_text = f"Промокод успешно применен. Ваш баланс пополнен на {delta_value}₽."
         trans_text = "Применение промокода"
         to_user_id = message.from_user.id
     else:
