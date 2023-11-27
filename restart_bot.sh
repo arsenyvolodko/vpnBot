@@ -4,7 +4,7 @@ source venv/bin/activate
 pid=`ps ax | grep python3 | grep main.py | grep -E -o ^'[0-9]+'`
 kill $pid
 echo '' > logs.txt
-echo '' > nohub.out
+echo '' > nohup.out
 git pull --force
 nohup python3 main.py &
-echo nohub.out
+cat nohup.out
