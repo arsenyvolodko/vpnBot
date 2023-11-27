@@ -354,7 +354,7 @@ async def callback_inline(call: types.CallbackQuery):
                                          reply_markup=get_back_to_previous_menu_from_callbacks_keyboard())
 
     elif call.data == BACK_TO_PREV_MENU_FROM_PROMO_CALLBACK:
-        botDB.set_promo_flag(call.from_user.id, 1)
+        botDB.set_promo_flag(call.from_user.id, 0)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
