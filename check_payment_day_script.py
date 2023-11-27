@@ -109,7 +109,7 @@ async def delete_clients_by_end_date(clients_to_delete):
 async def check_payment_day():
     cur_date = DateFunc.get_cur_date()
     clients_to_pay = botDB.get_clients_to_pay(cur_date)
-    clients_to_delete = botDB.get_clients_to_delete(DateFunc.get_next_date(cur_date, -2))
+    clients_to_delete = botDB.get_clients_to_delete(DateFunc.get_next_date(cur_date, days=0, months=-2))
     await delete_clients_by_end_date(clients_to_delete)
     if len(clients_to_pay) == 0:
         Files.write_to_logs('no clients to delete', str(__file__.split('/')[-1]))

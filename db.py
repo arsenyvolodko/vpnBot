@@ -120,6 +120,13 @@ class BotDB:
                            (new_date, user_id, device_num))
             self.conn.commit()
 
+    def get_client_end_date(self, user_id: int, device_num: int):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("SELECT end_date FROM clients WHERE user_id = %s and device_num = %s",
+                           (user_id, device_num))
+            result = cursor.fetchone()
+        return result[0]
+
     def get_clients_to_pay(self, date: str):
         return self.__get_clients_to_pay_or_delete(date, 1, True)
 

@@ -21,8 +21,8 @@ class DateFunc:
         return date.strftime(time_format)
 
     @classmethod
-    def get_next_date(cls, date_string: str = None, months: int = 1):
+    def get_next_date(cls, date_string: str = None, days=1, months=0):
         date = datetime.strptime(date_string, "%Y-%m-%d")
-        delta = dateutil.relativedelta.relativedelta(days=1, months=months)
+        delta = dateutil.relativedelta.relativedelta(days=days, months=months)
         next_payment_date = date.replace(day=date.day) + delta
         return next_payment_date.strftime("%Y-%m-%d")
