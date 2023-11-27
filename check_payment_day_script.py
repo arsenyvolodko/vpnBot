@@ -34,7 +34,7 @@ def get_info_subscription_message(cost: int, extend_devices: list, turn_off_devi
             text_for_extended_devices += f"\"Устройство №{i}\", "
         text_for_extended_devices = text_for_extended_devices[:-2]
         text_to_send = f"С вашего счета списано {cost}₽. \n" \
-                       f"Подписка для следующих устройств продлена на месяц: {text_for_extended_devices}.\n\n"
+                       f"Подписка для следующих устройств продлена на сутки: {text_for_extended_devices}.\n\n"  # todo день
 
     text_for_turn_off_devices = ''
     if len(turn_off_devices):

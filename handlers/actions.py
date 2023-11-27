@@ -147,7 +147,7 @@ async def callback_inline(call: types.CallbackQuery):
 
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="После добавления устройства с вашего счета автоматически спишется сумма, "
-                                              f"соответсвующая стоимости подписки в месяц за одно устройство - {PRICE}₽.\n"
+                                              f"соответсвующая стоимости подписки в сутки за одно устройство - {PRICE}₽.\n"  # todo в месяц
                                               f"На Вашем счете - {user_balance}₽.",
                                          reply_markup=get_add_device_confirmation_keyboard())
 
@@ -171,7 +171,7 @@ async def callback_inline(call: types.CallbackQuery):
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                              text="На вашем счете недостаточно средств для подключения нового устройства. "
                                                   "Стоимость подписки списывается автоматически после добавления устройства.\n"
-                                                  f"Стоимость подписки: {PRICE}₽ в месяц.\n"
+                                                  f"Стоимость подписки: {PRICE}₽ в сутки.\n"  # todo в месяц
                                                   f"На вашем счете: {balance}₽.",
                                              reply_markup=get_not_enough_money_keyboard())
             return
@@ -288,7 +288,7 @@ async def callback_inline(call: types.CallbackQuery):
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f"Устройство №{device_num}:\n"
                                               f"После продления подписки для данного устройства с вашего счета спишется сумма, "
-                                              f"соответсвующая стоимости подписки в месяц - {PRICE}₽.\n"
+                                              f"соответсвующая стоимости подписки в сукти - {PRICE}₽.\n"  # todo в месяц
                                               f"На Вашем счете - {user_balance}₽.",
                                          reply_markup=get_extend_subscription_confirmation_keyboard())
 
@@ -304,7 +304,7 @@ async def callback_inline(call: types.CallbackQuery):
         if balance < PRICE:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                              text="На вашем счете недостаточно средств для продления подписки."
-                                                  f"Стоимость подписки: {PRICE}₽ в месяц.\n"
+                                                  f"Стоимость подписки: {PRICE}₽ в сутки.\n"  # todo в месяц
                                                   f"На вашем счете: {balance}₽.",
                                              reply_markup=get_not_enough_money_keyboard())
             return
