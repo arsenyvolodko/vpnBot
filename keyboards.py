@@ -120,3 +120,4 @@ def get_fill_up_balance_keyboard():
 def get_back_to_previous_menu_from_callbacks_keyboard():
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, BACK_TO_PREV_MENU_FROM_PROMO_CALLBACK))
+    return keyboard
