@@ -247,7 +247,8 @@ async def callback_inline(call: types.CallbackQuery):
                                          reply_markup=get_specific_device_keyboard(bool(active)))
 
     elif call.data == GET_QR_AND_CONFIG_CALLBACK:
-        device_num = int(re.sub('Устройство №', '', call.message.text)[:-1])
+        # device_num = int(re.sub('Устройство №', '', call.message.text)[:-1])
+        device_num = int(re.search('[0-9]+', call.message.text).group())
         client = botDB.get_client(call.from_user.id, device_num)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
         await call.bot.delete_message(call.from_user.id, call.message.message_id)
