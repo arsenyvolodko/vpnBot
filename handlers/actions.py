@@ -128,13 +128,13 @@ async def callback_inline(call: types.CallbackQuery):
                                          text=MAIN_MENU_TEXT,
                                          reply_markup=get_main_menu_keyboard())
 
-    if call.data == DEVICES_CALLBACK:
+    elif call.data == DEVICES_CALLBACK:
         curr_devices = botDB.get_user_devices(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="Выберите устройство:",
                                          reply_markup=get_devices_keyboard(curr_devices))
 
-    if call.data == ADD_DEVICE_CALLBACK:
+    elif call.data == ADD_DEVICE_CALLBACK:
         new_device_num = check_devices_num(call.from_user.id)
 
         if new_device_num is False:
@@ -151,7 +151,7 @@ async def callback_inline(call: types.CallbackQuery):
                                               f"На Вашем счете - {user_balance}₽.",
                                          reply_markup=get_add_device_confirmation_keyboard())
 
-    if call.data == ADD_DEVICE_CONFIRMED_CALLBACK:
+    elif call.data == ADD_DEVICE_CONFIRMED_CALLBACK:
 
         await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
 
@@ -230,14 +230,14 @@ async def callback_inline(call: types.CallbackQuery):
 
         Files.write_to_logs(f"user {client.user_id} added device {client.device_num}")
 
-    if 'specific_device_callback#' in call.data:
+    elif 'specific_device_callback#' in call.data:
         device_num = int(re.sub('specific_device_callback#', '', call.data))
         active = botDB.check_if_active(call.from_user.id, device_num)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f"Устройство №{device_num}:",
                                          reply_markup=get_specific_device_keyboard(bool(active)))
 
-    if call.data == GET_QR_AND_CONFIG_CALLBACK:
+    elif call.data == GET_QR_AND_CONFIG_CALLBACK:
         device_num = int(re.sub('Устройство №', '', call.message.text)[:-1])
         client = botDB.get_client(call.from_user.id, device_num)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
@@ -245,14 +245,14 @@ async def callback_inline(call: types.CallbackQuery):
         await send_config_and_qr(call, config_file_path, qr_code_file_path)
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
-    if call.data == DELETE_DEVICE_CALLBACK:
+    elif call.data == DELETE_DEVICE_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="После удаления устройства доступ к VPN с этого устройства будет ограничен. "
                                               f"Вы уверены, что хотите удалить \"Устройство №{device_num}\"?",
                                          reply_markup=get_delete_device_confirmation_keyboard())
 
-    if call.data == DELETE_DEVICE_CONFIRM_CALLBACK:
+    elif call.data == DELETE_DEVICE_CONFIRM_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
         client = botDB.get_client(call.from_user.id, device_num)
         removed_from_server_config = Files.remove_client(client)
@@ -273,7 +273,7 @@ async def callback_inline(call: types.CallbackQuery):
         else:
             Files.write_to_logs(f"failed to add ips to db: {client.ips.get_ipv4()}")
 
-    if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CALLBACK:
+    elif call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
         user_balance = botDB.get_balance(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
@@ -283,7 +283,7 @@ async def callback_inline(call: types.CallbackQuery):
                                               f"На Вашем счете - {user_balance}₽.",
                                          reply_markup=get_extend_subscription_confirmation_keyboard())
 
-    if call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
+    elif call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
         device_num = int(re.search('[0-9]+', call.message.text).group())
         await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
 
@@ -338,20 +338,25 @@ async def callback_inline(call: types.CallbackQuery):
                                          f"В случае недостатка средств подписка будет приостановлена и доступ к vpn ограничен.",
                                     reply_markup=get_back_to_main_menu_keyboard())
 
-    if call.data == PROMOCODES_CALLBACK:
+    elif call.data == PROMOCODES_CALLBACK:
         botDB.set_promo_flag(call.from_user.id, 1)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f"Введите промокод",
-                                         reply_markup=get_back_to_previous_menu(BACK_TO_MAIN_MENU_CALLBACK))
+                                         reply_markup=get_back_to_previous_menu_from_callbacks_keyboard())
+
+    elif call.data == BACK_TO_PREV_MENU_FROM_PROMO_CALLBACK:
+        botDB.set_promo_flag(call.from_user.id, 1)
+        await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                         text=MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
     # finance
 
-    if call.data == FINANCE_CALLBACK:
+    elif call.data == FINANCE_CALLBACK:
         balance = botDB.get_balance(call.from_user.id)
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text=f"На Вашем счете: {balance}₽", reply_markup=get_finance_keyboard())
 
-    if call.data == PAYMENTS_HISTORY_CALLBACK:
+    elif call.data == PAYMENTS_HISTORY_CALLBACK:
         user_data_file_path = get_user_payments_history(call.from_user.id)
         with open(user_data_file_path, 'rb') as file:
             file_data = BytesIO(file.read())
@@ -360,12 +365,12 @@ async def callback_inline(call: types.CallbackQuery):
         await call.bot.delete_message(call.from_user.id, call.message.message_id)
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
-    if call.data == FILL_UP_CALLBACK:
+    elif call.data == FILL_UP_CALLBACK:
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="Выберите, на какую сумму пополнить баланс",
                                          reply_markup=get_fill_up_balance_keyboard())
 
-    if call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
+    elif call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
         sum_value = FILL_UP_BALANCE_CALLBACKS_MAP[call.data]
         balance = botDB.get_balance(call.from_user.id)
         if balance >= 300:
@@ -390,7 +395,7 @@ async def callback_inline(call: types.CallbackQuery):
                                              reply_markup=get_back_to_main_menu_keyboard())
             Files.write_to_logs(f"failed to fill up balance for {sum_value}₽ for user {call.from_user.id}")
 
-    if call.data == INVITING_LINKS_CALLBACK:
+    elif call.data == INVITING_LINKS_CALLBACK:
         uniq_link = BASE_URL + f'?start={call.from_user.id}'
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
                                          text="Вы можете пригласить друзей и получить 50₽ за каждого нового пользователя, "

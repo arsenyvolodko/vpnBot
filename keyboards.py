@@ -115,3 +115,8 @@ def get_fill_up_balance_keyboard():
                  get_button(FILL_UP_BALANCE_1000_TEXT, FILL_UP_BALANCE_1000_CALLBACK))
     keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, FINANCE_CALLBACK))
     return keyboard
+
+
+def get_back_to_previous_menu_from_callbacks_keyboard():
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(get_button(BACK_TO_PREV_MENU_TEXT, BACK_TO_PREV_MENU_FROM_PROMO_CALLBACK))

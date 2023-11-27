@@ -65,6 +65,7 @@ PAYMENTS_HISTORY_CALLBACK = 'payments_history_callback'
 
 PROMOCODES_TEXT = "Ввести промокод"
 PROMOCODES_CALLBACK = 'promocodes_callback'
+BACK_TO_PREV_MENU_FROM_PROMO_CALLBACK = 'back_to_prev_menu_from_promo_callback'
 
 INVITING_LINKS_TEXT = "Пригласительные ссылки"
 INVITING_LINKS_CALLBACK = 'inviting_links_callback'
