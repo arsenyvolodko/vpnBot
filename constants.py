@@ -22,13 +22,18 @@ START_TEXT = f'''
 '''
 
 # PATHS
+BASE_PATH = '/home/vpnBot/'
 if server_launch:
-    PATH_TO_CONFIG = "/../etc/wireguard/wg0.conf"
+    PATH_TO_CONFIG = "/etc/wireguard/wg0.conf"
+    PATH_TO_META = BASE_PATH + 'meta_configs'
+    PATH_TO_LOGS = BASE_PATH + 'logs.txt'
+    PATH_TO_CLIENTS_FILES = BASE_PATH + 'client_files'
+
 else:
     PATH_TO_CONFIG = "some_dir/server.conf"
-PATH_TO_META = "/home/vpnBot/meta_configs"
-PATH_TO_LOGS = '/home/vpnBot/logs.txt'
-PATH_TO_CLIENTS_FILES = '/home/vpnBot/client_files'
+    PATH_TO_META = "./meta_configs"
+    PATH_TO_LOGS = 'logs.txt'
+    PATH_TO_CLIENTS_FILES = './client_files'
 
 
 DEVICES_TEXT = 'Устройства'
@@ -38,7 +43,6 @@ ADD_DEVICE_TEXT = 'Добавить устройство'
 ADD_DEVICE_CALLBACK = 'add_device_callback'
 ADD_DEVICE_CONFIRMED_CALLBACK = 'add_device_confirmed_callback'
 
-# SPECIFIC_DEVICE_CALLBACK = 'specific_device_callback'
 GET_QR_AND_CONFIG_TEXT = 'Получить файл и qr'
 GET_QR_AND_CONFIG_CALLBACK = 'get_qr_and_config_callback'
 DELETE_DEVICE_TEXT = 'Удалить устройство'
@@ -84,7 +88,7 @@ FILL_UP_BALANCE_CALLBACKS_MAP = {FILL_UP_BALANCE_100_CALLBACK: 100, FILL_UP_BALA
                                  FILL_UP_BALANCE_700_CALLBACK: 700, FILL_UP_BALANCE_1000_CALLBACK: 1000}
 
 SOMETHING_WENT_WRONG_TEXT = 'К сожалению, что-то пошло не так :(\n' \
-                            'Видимо, автор бота не умеет в БД.. пожалуйста, вернитесь в меню и попробуйте еще раз.'
+                            'Видимо, автор бота не умеет в БД.. пожалуйста, вернитесь в меню и попробуйте еще раз или напишите @arseny_volodko'
 
 WG_APP_ANDROID_LINK = 'https://play.google.com/store/apps/details?id=com.wireguard.android'
 WG_APP_IOS_LINK = 'https://apps.apple.com/us/app/wireguard/id1441195209'

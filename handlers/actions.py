@@ -368,6 +368,11 @@ async def callback_inline(call: types.CallbackQuery):
     if call.data in FILL_UP_BALANCE_CALLBACKS_MAP:
         sum_value = FILL_UP_BALANCE_CALLBACKS_MAP[call.data]
         balance = botDB.get_balance(call.from_user.id)
+        if balance >= 300:
+            await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
+                                             text=f"Поскольку бот работает в тестовом режиме, то пополнить счет более, чем на 300₽ нельзя.",
+                                             reply_markup=get_back_to_main_menu_keyboard())
+            return
         new_balance = balance + sum_value
         balance_updated = botDB.update_balance(call.from_user.id, new_balance)
         if balance_updated:
@@ -421,7 +426,6 @@ async def fill_up_balance_actions_for_message(message: types.Message, delta_valu
                                        reply_markup=get_back_to_main_menu_keyboard())
         Files.write_to_logs(f"user {message.from_user.id} failed to use promocode for {delta_value}₽")
         return False
-
 
 
 @bot.message_handler()
