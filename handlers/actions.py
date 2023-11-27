@@ -233,8 +233,17 @@ async def callback_inline(call: types.CallbackQuery):
     elif 'specific_device_callback#' in call.data:
         device_num = int(re.sub('specific_device_callback#', '', call.data))
         active = botDB.check_if_active(call.from_user.id, device_num)
+        if active:
+            status = 'активно'
+            sub_info = f"Следующее списание: {transform_date_string_format(botDB.get_client_end_date(call.from_user.id, device_num))}"
+        else:
+            status = 'неактивно'
+            sub_info = f'Если не продлить подписку до {DateFunc.get_next_date(botDB.get_client_end_date(call.from_user.id, device_num), days=0, months=2)}, то устройство будет удалено.'
+        device_info_text = (f"Устройство №{device_num}.\n"
+                            f"статус: {status}\n"
+                            f"{sub_info}")
         await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                         text=f"Устройство №{device_num}:",
+                                         text=device_info_text,
                                          reply_markup=get_specific_device_keyboard(bool(active)))
 
     elif call.data == GET_QR_AND_CONFIG_CALLBACK:
