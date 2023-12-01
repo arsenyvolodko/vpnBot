@@ -234,5 +234,11 @@ class BotDB:
                            (new_operation_time, user_id, old_operation_time))
             self.conn.commit()
 
+    def get_all_users(self):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("SELECT user_id FROM balance_table")
+            result = cursor.fetchall()
+        return list(map(lambda x: int(x[0]), result))
+
     def close(self):
         self.conn.close()
