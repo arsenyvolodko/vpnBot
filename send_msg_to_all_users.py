@@ -7,7 +7,7 @@ from constants import *
 
 async def send_msg_safety(user_id, text):
     try:
-        bot.bot.send_message(chat_id=user_id, text=text)
+        await bot.bot.send_message(chat_id=user_id, text=text)
     except Exception as e:
         Files.write_to_logs(f"User {user_id} blocked bot")
 
