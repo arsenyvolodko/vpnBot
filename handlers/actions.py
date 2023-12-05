@@ -294,8 +294,9 @@ async def callback_inline(call: types.CallbackQuery):
                                          reply_markup=get_extend_subscription_confirmation_keyboard())
 
     elif call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
-        device_num = int(re.search('[0-9]+', call.message.text).group())
-        await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+        msg_text = call.message.text
+        device_num = int(re.search('[0-9]+', msg_text).group())
+        await call.bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
         new_message = await call.bot.send_message(chat_id=call.from_user.id,
                                                   # todo вот если тут не отправится - все ебнется, а не хотелось бы
