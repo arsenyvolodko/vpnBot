@@ -238,7 +238,7 @@ async def callback_inline(call: types.CallbackQuery):
             sub_info = f"Следующее списание: {transform_date_string_format(botDB.get_client_end_date(call.from_user.id, device_num))}."
         else:
             status = 'неактивно'
-            sub_info = f'Если не продлить подписку до {transform_date_string_format(DateFunc.get_next_date(botDB.get_client_end_date(call.from_user.id, device_num), days=0, months=2))}, то устройство будет удалено.'
+            sub_info = f'Если не продлить подписку до {transform_date_string_format(DateFunc.get_next_date(botDB.get_client_end_date(call.from_user.id, device_num), months=2))}, то устройство будет удалено.'
         device_info_text = (f"Устройство №{device_num}.\n"
                             f"Cтатус: {status}.\n"
                             f"{sub_info}")
