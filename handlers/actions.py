@@ -39,6 +39,13 @@ async def menu_message(message: types.Message):
                                    "Используйте команду /start для того, чтобы начать пользоваться ботом.")
 
 
+def delete_message(user_id, message_id):
+    try:
+        bot.delete_message(user_id, message_id)
+    except Exception:
+        pass
+
+
 async def handle_new_user_by_link(message: types.Message):
     from_user_id = int(message.get_args())
     res = await fill_up_balance_actions_for_message(message, 50, False, from_user_id)
@@ -153,7 +160,8 @@ async def callback_inline(call: types.CallbackQuery):
 
     elif call.data == ADD_DEVICE_CONFIRMED_CALLBACK:
 
-        await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+        # await call.bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
+        delete_message(call.from_user.id, call.message.message_id)
 
         new_message = await call.bot.send_message(chat_id=call.from_user.id,
                                                   text="Проверяем данные. Это займет несколько секунд.")
@@ -221,7 +229,8 @@ async def callback_inline(call: types.CallbackQuery):
         botDB.update_balance(call.from_user.id, new_balance)
         botDB.add_transaction(call.from_user.id, 0, PRICE, cur_time, f"Добавлено Устройство №{new_device_num}")
 
-        await call.bot.delete_message(call.from_user.id, new_message.message_id)
+        # await call.bot.delete_message(call.from_user.id, new_message.message_id)
+        delete_message(call.from_user.id, call.message.message_id)
         await call.bot.send_message(chat_id=call.from_user.id,
                                     text=f"\"Устройство №{new_device_num}\" успешно добавлено. С вашего счета списано {PRICE}₽. "
                                          f"Следующее списание будет произведено автоматически {transform_date_string_format(next_date)}.\n"
@@ -251,7 +260,8 @@ async def callback_inline(call: types.CallbackQuery):
         device_num = int(re.search('[0-9]+', call.message.text).group())
         client = botDB.get_client(call.from_user.id, device_num)
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
-        await call.bot.delete_message(call.from_user.id, call.message.message_id)
+        # await call.bot.delete_message(call.from_user.id, call.message.message_id)
+        delete_message(call.from_user.id, call.message.message_id)
         await send_config_and_qr(call, config_file_path, qr_code_file_path)
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
@@ -296,8 +306,8 @@ async def callback_inline(call: types.CallbackQuery):
     elif call.data == EXTEND_SUBSCRIPTION_FOR_DEVICE_CONFIRM_CALLBACK:
         msg_text = call.message.text
         device_num = int(re.search('[0-9]+', msg_text).group())
-        await call.bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-
+        # await call.bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        delete_message(call.from_user.id, call.message.message_id)
         new_message = await call.bot.send_message(chat_id=call.from_user.id,
                                                   # todo вот если тут не отправится - все ебнется, а не хотелось бы
                                                   text="Проверяем данные. Это займет несколько секунд.")
@@ -342,7 +352,8 @@ async def callback_inline(call: types.CallbackQuery):
         botDB.change_client_activity(call.from_user.id, device_num, 1)
         botDB.update_client_end_date(call.from_user.id, device_num, next_date)
 
-        await call.bot.delete_message(call.from_user.id, new_message.message_id)
+        # await call.bot.delete_message(call.from_user.id, new_message.message_id)
+        delete_message(call.from_user.id, call.message.message_id)
         await call.bot.send_message(chat_id=call.from_user.id,
                                     text=f"Подписка для устройства №{device_num} успешно продлена.\nС вашего счета списано {PRICE}₽. "
                                          f"Следующее списание будет произведено автоматически {transform_date_string_format(next_date)}.\n"
@@ -373,7 +384,8 @@ async def callback_inline(call: types.CallbackQuery):
             file_data = BytesIO(file.read())
             await call.bot.send_document(chat_id=call.from_user.id, document=InputFile(file_data,
                                                                                        filename='balance history.txt'))  # todo добавить какой-нибудь текст
-        await call.bot.delete_message(call.from_user.id, call.message.message_id)
+        # await call.bot.delete_message(call.from_user.id, call.message.message_id)
+        delete_message(call.from_user.id, call.message.message_id)
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
     elif call.data == FILL_UP_CALLBACK:
