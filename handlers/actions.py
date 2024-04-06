@@ -4,14 +4,17 @@ from datetime import datetime
 from io import BytesIO
 from aiogram.types import InputFile
 
-import Exceptions
-from DateFunc import DateFunc
+from classes_util import Exceptions
+from classes_util.DateFunc import DateFunc
+from classes_util.Exceptions.NoFreeIPsError import NoFreeIPsError
+from classes_util.Exceptions.NotEnoughMoneyError import NotEnoughMoneyError
+from config import PATH_TO_CLIENTS_FILES
 from shared import bot, botDB
-from Client import Client
-from Keys import Keys
-from files import Files
-from keyboards import *
-from constants import *
+from classes_util.Client import Client
+from classes_util.Keys import Keys
+from classes_util.Files import Files
+from handlers.keyboards import *
+from handlers.consts import *
 
 
 @bot.message_handler(commands=["start"])
@@ -19,14 +22,13 @@ async def welcome_message(message: types.Message):
     sent_message = await message.bot.send_message(message.from_user.id, START_TEXT,
                                                   reply_markup=to_main_menu_keyboard())
     if not botDB.user_exists(message.from_user.id):
-        botDB.add_user(message.from_user.username, message.from_user.id)
+        botDB.add_user(message.from_user.username, message.from_user.id, PRICE)
         botDB.add_transaction(message.from_user.id, 1, PRICE, sent_message.date.strftime("%Y-%m-%d %H:%M"),
                               'Стартовый баланс')
-        if message.get_args():
-            await handle_new_user_by_link(message)
-            Files.write_to_logs(
-                f"New user: {message.from_user.username}: {message.from_user.id} invited by {message.get_args()}")
-        Files.write_to_logs(f"New user: {message.from_user.username}: {message.from_user.id}")
+
+        Files.write_to_logs(
+            f"New user: {message.from_user.username}: {message.from_user.id} invited by {message.get_args()}")
+    Files.write_to_logs(f"New user: {message.from_user.username}: {message.from_user.id}")
 
 
 @bot.message_handler(commands=["menu"])
@@ -76,12 +78,13 @@ def transform_date_string_format(date_string: str, time=False):
     return date
 
 
-async def send_config_and_qr(call: types.CallbackQuery, config_file_path: str, qr_code_file_path: str):
+async def send_config_and_qr(call: types.CallbackQuery, config_file_path: str, qr_code_file_path: str,
+                             device_num: int):
     try:
         with open(config_file_path, 'rb') as config_file:
             file_data = BytesIO(config_file.read())
             doc1 = await call.bot.send_document(chat_id=call.from_user.id,
-                                                document=InputFile(file_data, filename='NexVpn.conf'))
+                                                document=InputFile(file_data, filename=f'NexVpn{device_num}.conf'))
         doc2 = await call.bot.send_photo(call.from_user.id, open(f'{qr_code_file_path}', 'rb'))
         if doc1 and doc2:
             delete_tmp_client_file(config_file_path)
@@ -192,14 +195,13 @@ async def callback_inline(call: types.CallbackQuery):
         keys = Keys()
         try:
             ips = botDB.get_next_free_ips()
-        except Exceptions.NoFreeIPsError:
+        except NoFreeIPsError:
             await call.bot.send_message(chat_id=MY_ID,
                                         text=f"No more free IPs available, user: @{call.from_user.username}")
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                              text="Вам удивительно повезло стать тем человеком, на котором на сервере закончились "
-                                                  "свободные IP адреса. Мы уже работаем над устранением проблемы, приносим извинения "
-                                                  "за то, что не оправдали Ваших ожиданий. Мы напишем Вам, когда исправим проблему и "
-                                                  "предоставим 3 месяца подписки бесплатно.\nЕсли вы уже пополнили свой баланс, но хотите "
+                                                  "свободные IP адреса. Мы уже работаем над устранением проблемы. "
+                                                  "Мы напишем Вам, когда исправим проблему, если вы уже пополнили свой баланс, но хотите "
                                                   "вывести средства обратно, напишите @arseny_volodko.")
 
             Files.write_to_logs("no more free IPs available, user: @{call.from_user.username}")
@@ -210,7 +212,7 @@ async def callback_inline(call: types.CallbackQuery):
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
         updated = Files.update_server_config_file(client)
         if updated:
-            sent = await send_config_and_qr(call, config_file_path, qr_code_file_path)
+            sent = await send_config_and_qr(call, config_file_path, qr_code_file_path, client.device_num)
         else:
             sent = False
 
@@ -262,7 +264,7 @@ async def callback_inline(call: types.CallbackQuery):
         config_file_path, qr_code_file_path = Files.create_client_config_file(client)
         # await call.bot.delete_message(call.from_user.id, call.message.message_id)
         delete_message(call.from_user.id, call.message.message_id)
-        await send_config_and_qr(call, config_file_path, qr_code_file_path)
+        await send_config_and_qr(call, config_file_path, qr_code_file_path, client.device_num)
         await call.bot.send_message(call.from_user.id, MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard())
 
     elif call.data == DELETE_DEVICE_CALLBACK:
@@ -309,9 +311,7 @@ async def callback_inline(call: types.CallbackQuery):
         # await call.bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         delete_message(call.from_user.id, call.message.message_id)
         new_message = await call.bot.send_message(chat_id=call.from_user.id,
-                                                  # todo вот если тут не отправится - все ебнется, а не хотелось бы
                                                   text="Проверяем данные. Это займет несколько секунд.")
-
         balance = botDB.get_balance(call.from_user.id)
         if balance < PRICE:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
@@ -327,7 +327,7 @@ async def callback_inline(call: types.CallbackQuery):
 
         try:
             botDB.update_balance(call.from_user.id, new_balance)
-        except Exceptions.NotEnoughMoneyError:
+        except NotEnoughMoneyError:
             call.bot.edit_message_text(chat_id=call.from_user.id, message_id=new_message.message_id,
                                        text=SOMETHING_WENT_WRONG_TEXT, reply_markup=get_back_to_main_menu_keyboard())
             return
@@ -465,6 +465,7 @@ async def answer_message(message: types.Message):
         return
 
     used_promocodes = botDB.get_used_promocodes(message.from_user.id)
+    print(used_promocodes)
     if message.text in used_promocodes:
         await message.bot.send_message(message.from_user.id, "Вы уже воспользовались этим промокодом.",
                                        reply_markup=get_back_to_previous_menu(BACK_TO_MAIN_MENU_CALLBACK))

@@ -10,6 +10,8 @@ aiogram = "^2.25.1"
 psycopg2-binary = "^2.9.9"
 python-dateutil = "^2.9.0"
 qrcode = "^7.4.2"
+python-dotenv = "^1.0.1"
+tqdm = "^4.66.2"
 
 [tool.poetry.dev-dependencies]
 
