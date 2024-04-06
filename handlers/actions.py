@@ -1,10 +1,8 @@
-import os
 import re
 from datetime import datetime
 from io import BytesIO
 from aiogram.types import InputFile
 
-from classes_util import Exceptions
 from classes_util.DateFunc import DateFunc
 from classes_util.Exceptions.NoFreeIPsError import NoFreeIPsError
 from classes_util.Exceptions.NotEnoughMoneyError import NotEnoughMoneyError

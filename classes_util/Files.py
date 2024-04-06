@@ -3,7 +3,6 @@ import subprocess
 import qrcode
 from .Client import Client
 from .DateFunc import DateFunc
-from subprocess import call
 
 from config import PATH_TO_SYNC, PATH_TO_LOGS, PATH_TO_CONFIG, PATH_TO_CLIENTS_FILES, SERVER_PUBLIC_KEY, \
     SERVER_ENDPOINT
@@ -107,4 +106,3 @@ class Files:
     def run_bash_sync_script(cls):
         params = [PATH_TO_CONFIG]
         subprocess.run(['bash', PATH_TO_SYNC] + params)
-        # call(PATH_TO_SYNC)
