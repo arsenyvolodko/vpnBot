@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN = os.environ.get('BOT_TOKEN')
-DEBUG = bool(os.environ.get('DEBUG'))
+DEBUG = os.environ.get('DEBUG') == 'True'
 
 DB_HOST = os.environ.get('DB_HOST')
 DB_NAME = os.environ.get('DB_NAME')
