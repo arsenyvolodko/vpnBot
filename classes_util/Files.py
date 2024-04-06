@@ -34,7 +34,6 @@ class Files:
     def update_server_config_file(cls, client: Client):
         try:
             new_data = cls.gen_data_for_server_config_file(client)
-            print(PATH_TO_CONFIG)
             with open(PATH_TO_CONFIG, 'a') as file:
                 file.write(new_data)
                 file.close()

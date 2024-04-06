@@ -463,7 +463,6 @@ async def answer_message(message: types.Message):
         return
 
     used_promocodes = botDB.get_used_promocodes(message.from_user.id)
-    print(used_promocodes)
     if message.text in used_promocodes:
         await message.bot.send_message(message.from_user.id, "Вы уже воспользовались этим промокодом.",
                                        reply_markup=get_back_to_previous_menu(BACK_TO_MAIN_MENU_CALLBACK))
