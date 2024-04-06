@@ -104,5 +104,4 @@ class Files:
 
     @classmethod
     def run_bash_sync_script(cls):
-        params = [PATH_TO_CONFIG]
-        subprocess.run(['bash', PATH_TO_SYNC] + params)
+        subprocess.call("/home/vpnBot/utils/sync_iter.sh")
