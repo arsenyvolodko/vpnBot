@@ -5,7 +5,7 @@ from .Client import Client
 from .DateFunc import DateFunc
 
 from config import PATH_TO_SYNC, PATH_TO_LOGS, PATH_TO_CONFIG, PATH_TO_CLIENTS_FILES, SERVER_PUBLIC_KEY, \
-    SERVER_ENDPOINT
+    SERVER_ENDPOINT, DEBUG
 
 
 class Files:
@@ -103,4 +103,5 @@ class Files:
 
     @classmethod
     def run_bash_sync_script(cls):
-        subprocess.call("/home/vpnBot/utils/sync_iter.sh")
+        if not DEBUG:
+            subprocess.call(PATH_TO_SYNC)

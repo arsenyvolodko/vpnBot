@@ -16,8 +16,6 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD')
 SERVER_PUBLIC_KEY = os.environ.get('SERVER_PUBLIC_KEY')
 SERVER_ENDPOINT = os.environ.get('SERVER_ENDPOINT')
 
-# BASE_PATH = '/home/vpnBot/'
-
 WORK_DIR = Path(__file__).parent
 
 PATH_TO_SYNC = WORK_DIR / 'utils/sync_iter.sh'
