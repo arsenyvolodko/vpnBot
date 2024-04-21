@@ -6,6 +6,7 @@ from classes_util.Exceptions.NoSuchClientExistsError import NoSuchClientExistsEr
 from classes_util.Ips import Ips
 from classes_util.Keys import Keys
 import config
+from payments.models.payment_status import PaymentStatus
 
 
 class BotDB:
@@ -238,6 +239,26 @@ class BotDB:
             cursor.execute("SELECT user_id FROM balance_table")
             result = cursor.fetchall()
         return list(map(lambda x: int(x[0]), result))
+
+    # payments
+
+    def add_payment(self, payment_id: str, payment_status: PaymentStatus, user_id: int):
+        with self.conn(), self.conn.cursor() as cursor:
+            cursor.execute("INSERT INTO payments (payment_id, status, user_id) VALUES (%s, %s, %s)",
+                           (payment_id, payment_status.value, user_id))
+            self.conn.commit()
+
+    def update_payment_status(self, payment_id: str, payment_status: PaymentStatus):
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("UPDATE payments SET payment_status = %s WHERE payment_id = %s and payment_id = %s",
+                           (payment_status.value, payment_id))
+            self.conn.commit()
+
+    def get_user_id_by_payment_id(self, payment_id: str) -> int:
+        with self.conn, self.conn.cursor() as cursor:
+            cursor.execute("SELECT user_id FROM payments WHERE payment_id = %s", (payment_id,))
+            result = cursor.fetchone()
+        return result[0]
 
     def close(self):
         self.conn.close()
