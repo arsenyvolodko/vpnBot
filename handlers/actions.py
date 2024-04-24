@@ -396,7 +396,7 @@ async def callback_inline(call: types.CallbackQuery):
         balance = botDB.get_balance(call.from_user.id)
         if balance + sum_value > 1200:
             await call.bot.edit_message_text(chat_id=call.from_user.id, message_id=call.message.message_id,
-                                             text=f"Поскольку бот работает в тестовом режиме, сумма средств на счете временно ограничена 300₽.\n"
+                                             text=f"Поскольку бот работает в тестовом режиме, сумма средств на счете временно ограничена 1200₽.\n"
                                                   f"На вашем счете: {balance}₽.",
                                              reply_markup=get_back_to_main_menu_keyboard())
             return
