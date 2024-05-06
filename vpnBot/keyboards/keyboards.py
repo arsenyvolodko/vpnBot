@@ -45,12 +45,16 @@ def get_main_menu_keyboard():
     )
 
 
+def get_back_to_main_menu_keyboard():
+    return construct_keyboard(with_back_to_menu=True)
+
+
 def get_device_button_text(device: Client):
     status = '🟢' if device.active else '🔴'
     return f'{ButtonsStorage.DEVICE.text.format(device.device_num)} {status}'
 
 
-def get_devices_keyboard(devices: list[Client]):
+def get_devices_keyboard(devices: list[Client], add_new_allowed: bool):
     builder = InlineKeyboardBuilder()
     for device in devices:
         builder.button(
@@ -60,12 +64,11 @@ def get_devices_keyboard(devices: list[Client]):
                 device_num=device.device_num
             )
         )
-    builder.button(
-        text=ButtonsStorage.ADD_DEVICE.text,
-        callback_data=DevicesCallbackFactory(
-            callback=ButtonsStorage.ADD_DEVICE.callback,
+    if add_new_allowed:
+        builder.button(
+            text=ButtonsStorage.ADD_DEVICE.text,
+            callback_data=ButtonsStorage.ADD_DEVICE.callback
         )
-    )
     builder.button(
         text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
         callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback

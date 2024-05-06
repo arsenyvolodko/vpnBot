@@ -4,6 +4,7 @@ from sqlalchemy import BigInteger, Column, ForeignKey, Date, DateTime
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from vpnBot.enums.operation_type_enum import OperationTypeEnum
 from vpnBot.enums.payment_status_enum import PaymentStatusEnum
 from vpnBot.enums.transaction_comment_enum import TransactionCommentEnum
 from vpnBot.static.common import PRICE
@@ -94,6 +95,15 @@ class Keys(Base):
 
     client = relationship("Client", back_populates="keys", uselist=False)
 
+    def __init__(self, **kwargs):
+        if not kwargs.get('private_key'):
+            kwargs['private_key'] = self._generate_private_key()
+        if not kwargs.get('public_key'):
+            kwargs['public_key'] = self._generate_public_key(kwargs['private_key'])
+        if not kwargs.get('preshared_key'):
+            kwargs['preshared_key'] = self._generate_preshared_key()
+        super().__init__(**kwargs)
+
     @staticmethod
     def _generate_private_key() -> str:
         return subprocess.check_output(
@@ -117,17 +127,6 @@ class Keys(Base):
             text=True,
             stderr=subprocess.PIPE
         ).strip()
-
-    @staticmethod
-    def generate_keys() -> 'Keys':
-        private_key = Keys._generate_private_key()
-        public_key = Keys._generate_public_key(private_key)
-        preshared_key = Keys._generate_preshared_key()
-        return Keys(
-            public_key=public_key,
-            preshared_key=preshared_key,
-            private_key=private_key
-        )
 
 
 class Client(Base):
@@ -182,7 +181,7 @@ class Transaction(Base):
         nullable=False
     )
 
-    operation_type: Mapped[bool] = mapped_column(
+    operation_type: Mapped[OperationTypeEnum] = mapped_column(
         nullable=False
     )
 
