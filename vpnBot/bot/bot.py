@@ -1,14 +1,20 @@
+from io import BytesIO
+
 from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart
+from aiogram.types import InputFile
 
+from vpnBot import config
 from vpnBot.db.manager import db_manager
-from vpnBot.exceptions.devices_limit_error import DevicesLimitError
-from vpnBot.exceptions.no_available_ips_error import NoAvailableIpsError
-from vpnBot.exceptions.not_enough_money_error import NotEnoughMoneyError
 from vpnBot.keyboards.keyboards import *
 from vpnBot.static.common import *
 from vpnBot.static.texts_storage import *
-from vpnBot.utils.bot_funcs import add_and_get_user, get_user_balance, add_device
+from vpnBot.utils.bot_funcs import (
+    add_and_get_user,
+    get_user_balance,
+    add_device_and_check_error,
+)
+from vpnBot.wireguard_tools.wireguard_client import WireguardClient
 
 dp = Dispatcher()
 router = Router()
@@ -27,7 +33,8 @@ async def welcome_message(message: types.Message):
     #     ButtonsStorage.GO_TO_MAIN_MENU.callback,
     #     ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
     # ]
-    F.data == ButtonsStorage.GO_TO_MAIN_MENU.callback
+    F.data
+    == ButtonsStorage.GO_TO_MAIN_MENU.callback
     # F.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
 )
 async def handle_callback(call: types.CallbackQuery):
@@ -37,52 +44,52 @@ async def handle_callback(call: types.CallbackQuery):
     )
 
 
-@dp.callback_query(
-    F.data == ButtonsStorage.DEVICES.callback
-)
+@dp.callback_query(F.data == ButtonsStorage.DEVICES.callback)
 async def handle_callback(call: types.CallbackQuery):
     user_devices = await db_manager.get_user_devices(call.from_user.id)
     await call.message.edit_text(
-        text=TextsStorage.CHOOSE_DEVICE if user_devices else TextsStorage.NO_DEVICES_ADDED,
-        reply_markup=get_devices_keyboard(user_devices, len(user_devices) < DEVICES_MAX_AMOUNT)
+        text=(
+            TextsStorage.CHOOSE_DEVICE
+            if user_devices
+            else TextsStorage.NO_DEVICES_ADDED
+        ),
+        reply_markup=get_devices_keyboard(
+            user_devices, len(user_devices) < DEVICES_MAX_AMOUNT
+        ),
     )
 
 
-@dp.callback_query(
-    F.data == ButtonsStorage.ADD_DEVICE.callback
-)
+@dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE.callback)
 async def handle_query(call: types.CallbackQuery):
     user_balance = await get_user_balance(call.from_user.id)
     await call.message.edit_text(
         text=TextsStorage.ADD_DEVICE_CONFIRMATION_INFO.format(user_balance),
-        reply_markup=get_add_device_confirmation_keyboard()
+        reply_markup=get_add_device_confirmation_keyboard(),
     )
 
 
-@dp.callback_query(
-    F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION
-)
+@dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION)
 async def add_device_confirmed(call: types.CallbackQuery):
     if not (client := await add_device_and_check_error(call)):
         return
-
-
-async def add_device_and_check_error(call: types.CallbackQuery) -> Client | None:
-    try:
-        client = await add_device(call.from_user.id)
-        return client
-    except DevicesLimitError:
-        error_text = TextsStorage.ADD_DEVICE_CONFIRMATION_INFO
-    except NoAvailableIpsError:
-        error_text = TextsStorage.NO_AVAILABLE_IPS_ERROR_MSG
-    except NotEnoughMoneyError:
-        error_text = TextsStorage.NOT_ENOUGH_MONEY_ERROR_MSG
-    except Exception:
-        error_text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
-        # todo add logs here
-
-    await call.message.answer(
-        text=error_text,
-        reply_markup=get_back_to_main_menu_keyboard()
+    wg_keys = (await db_manager.get_keys_by_client_id(client.id)).get_as_wg_keys()
+    ips = await db_manager.get_ips_by_client_id(client.id)
+    wg_client = WireguardClient(
+        name=f"{client.user_id}_{client.device_num}",
+        ipv4=ips.ipv4,
+        ipv6=ips.ipv6,
+        keys=wg_keys,
+        endpoint=config.SERVER_ENDPOINT,
     )
-    return None
+    qr_file = wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
+    config_file = wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
+    await call.message.delete()
+
+    with open(config_file, "rb") as config_file:
+        file_data = BytesIO(config_file.read())
+        await call.bot.send_document(
+            chat_id=call.from_user.id,
+            document=InputFile(file_data, filename=f"NexVpn{client.device_num}.conf"),
+        )
+    await call.bot.send_photo(call.from_user.id, open(f"{qr_file}", "rb"))
+

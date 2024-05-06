@@ -8,6 +8,7 @@ from vpnBot.enums.operation_type_enum import OperationTypeEnum
 from vpnBot.enums.payment_status_enum import PaymentStatusEnum
 from vpnBot.enums.transaction_comment_enum import TransactionCommentEnum
 from vpnBot.static.common import PRICE
+from vpnBot.wireguard_tools.wireguard_keys import WireguardKeys
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -23,49 +24,26 @@ class User(Base):
         autoincrement=False,
     )
 
-    username: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
+    username: Mapped[str] = mapped_column(unique=True, nullable=False)
 
-    balance: Mapped[int] = mapped_column(
-        nullable=False,
-        default=PRICE
-    )
+    balance: Mapped[int] = mapped_column(nullable=False, default=PRICE)
 
-    join_date = Column(
-        Date,
-        nullable=False,
-        default=datetime.now().date()
-    )
+    join_date = Column(Date, nullable=False, default=datetime.now().date())
 
 
 class Ips(Base):
     __tablename__ = "ips"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    interface: Mapped[int] = mapped_column(
-        nullable=False,
-        default=0
-    )
+    interface: Mapped[int] = mapped_column(nullable=False, default=0)
 
-    ipv4: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
+    ipv4: Mapped[str] = mapped_column(unique=True, nullable=False)
 
-    ipv6: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
+    ipv6: Mapped[str] = mapped_column(unique=True, nullable=False)
 
     client_id: Mapped[int] = mapped_column(
-        ForeignKey('client.id'),
-        nullable=True,
-        default=None
+        ForeignKey("client.id"), nullable=True, default=None
     )
 
     client = relationship("Client", back_populates="ips")
@@ -74,173 +52,88 @@ class Ips(Base):
 class Keys(Base):
     __tablename__ = "keys"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    public_key: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
+    public_key: Mapped[str] = mapped_column(unique=True, nullable=False)
 
-    preshared_key: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
-
-    private_key: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
+    private_key: Mapped[str] = mapped_column(unique=True, nullable=False)
 
     client = relationship("Client", back_populates="keys", uselist=False)
 
-    def __init__(self, **kwargs):
-        if not kwargs.get('private_key'):
-            kwargs['private_key'] = self._generate_private_key()
-        if not kwargs.get('public_key'):
-            kwargs['public_key'] = self._generate_public_key(kwargs['private_key'])
-        if not kwargs.get('preshared_key'):
-            kwargs['preshared_key'] = self._generate_preshared_key()
-        super().__init__(**kwargs)
+    def __init__(self, keys: WireguardKeys):
+        super().__init__(public_key=keys.public_key, private_key=keys.private_key)
 
-    @staticmethod
-    def _generate_private_key() -> str:
-        return subprocess.check_output(
-            ["wg", "genkey"],
-            text=True,
-            stderr=subprocess.PIPE
-        ).strip()
-
-    @staticmethod
-    def _generate_public_key(private_key: str) -> str:
-        return subprocess.check_output(
-            ["wg", "pubkey"],
-            text=True,
-            input=private_key,
-            stderr=subprocess.PIPE).strip()
-
-    @staticmethod
-    def _generate_preshared_key() -> str:
-        return subprocess.check_output(
-            ["wg", "genpsk"],
-            text=True,
-            stderr=subprocess.PIPE
-        ).strip()
+    def get_as_wg_keys(self):
+        return WireguardKeys(private_key=self.private_key, public_key=self.public_key)
 
 
 class Client(Base):
     __tablename__ = "client"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id = Column(
-        BigInteger,
-        ForeignKey("user.id"),
-        nullable=False
-    )
+    user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
 
-    device_num: Mapped[int] = mapped_column(
-        nullable=False
-    )
+    device_num: Mapped[int] = mapped_column(nullable=False)
 
-    active: Mapped[bool] = mapped_column(
-        nullable=False,
-        default=1
-    )
+    active: Mapped[bool] = mapped_column(nullable=False, default=1)
 
-    end_date = Column(
-        Date,
-        nullable=False
-    )
+    end_date = Column(Date, nullable=False)
 
     keys_id: Mapped[int] = mapped_column(
-        ForeignKey("keys.id"),
-        nullable=False,
-        unique=True
+        ForeignKey("keys.id"), nullable=False, unique=True
     )
 
     user = relationship("User", backref="clients")
     keys = relationship("Keys", back_populates="client", uselist=False)
     # keys = relationship("Keys", back_populates="client", foreign_keys=[keys_id], uselist=False)
-    ips = relationship("Ips", back_populates='client', uselist=False)
+    ips = relationship("Ips", back_populates="client", uselist=False)
 
 
 class Transaction(Base):
-    __tablename__ = 'transaction'
+    __tablename__ = "transaction"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    user_id = Column(
-        BigInteger,
-        ForeignKey("user.id"),
-        nullable=False
-    )
+    user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
 
-    operation_type: Mapped[OperationTypeEnum] = mapped_column(
-        nullable=False
-    )
+    operation_type: Mapped[OperationTypeEnum] = mapped_column(nullable=False)
 
-    operation_time = Column(
-        DateTime,
-        nullable=False,
-        default=datetime.now
-    )
+    operation_time = Column(DateTime, nullable=False, default=datetime.now)
 
-    comment: Mapped[TransactionCommentEnum] = mapped_column(
-        nullable=False
-    )
+    comment: Mapped[TransactionCommentEnum] = mapped_column(nullable=False)
 
 
 class PromoCode(Base):
-    __tablename__ = 'promo_code'
+    __tablename__ = "promo_code"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    value: Mapped[int] = mapped_column(
-        nullable=False
-    )
+    value: Mapped[int] = mapped_column(nullable=False)
 
-    name: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False
-    )
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
 
 
 class UsedPromoCode(Base):
-    __tablename__ = 'used_promo_code'
+    __tablename__ = "used_promo_code"
 
-    user_id = Column(
-        BigInteger,
-        ForeignKey('user.id'),
-        primary_key=True
-    )
+    user_id = Column(BigInteger, ForeignKey("user.id"), primary_key=True)
 
     promo_code_id: Mapped[int] = mapped_column(
-        ForeignKey('promo_code.id'),
-        primary_key=True
+        ForeignKey("promo_code.id"), primary_key=True
     )
 
 
 class Payment(Base):
-    __tablename__ = 'payment'
+    __tablename__ = "payment"
 
-    id: Mapped[str] = mapped_column(
-        primary_key=True
-    )
+    id: Mapped[str] = mapped_column(primary_key=True)
 
     user_id = Column(
         BigInteger,
-        ForeignKey('user.id'),
+        ForeignKey("user.id"),
     )
 
     status: Mapped[PaymentStatusEnum] = mapped_column(
-        nullable=False,
-        default=PaymentStatusEnum.PENDING
+        nullable=False, default=PaymentStatusEnum.PENDING
     )

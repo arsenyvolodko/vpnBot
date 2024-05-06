@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from vpnBot.config import DATABASE_URL
 from vpnBot.db.tables import *
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
-from vpnBot.utils.keys_util import generate_keys
 
 from vpnBot.exceptions.devices_limit_error import DevicesLimitError
 from vpnBot.exceptions.no_available_ips_error import NoAvailableIpsError
@@ -38,9 +37,9 @@ class DBManager:
                 await conn.run_sync(Base.metadata.create_all)
 
     async def get_user_by_id(self, user_id: int) -> User | None:
-        # noinspection PyTypeChecker
-        query = select(User).where(User.id == user_id)
         async with self.session_maker() as session:
+            # noinspection PyTypeChecker
+            query = select(User).where(User.id == user_id)
             result = await session.execute(query)
             user = result.scalars().first()
             return user
@@ -53,14 +52,30 @@ class DBManager:
                 return new_record
 
     async def get_user_devices(self, user_id: int) -> list[Client]:
-        # noinspection PyTypeChecker
-        query = select(Client).where(Client.user_id == user_id)
         async with self.session_maker() as session:
+            # noinspection PyTypeChecker
+            query = select(Client).where(Client.user_id == user_id)
             result = await session.execute(query)
             clients = result.scalars()
             return clients.all()
 
-    async def update_balance(self, session, user_id: int, amount: int, op_type: OperationTypeEnum) -> bool:
+    async def get_ips_by_client_id(self, client_id: int) -> Ips | None:
+        async with self.session_maker() as session:
+            query = select(Ips).where(Ips.client_id == client_id)
+            result = await session.execute(query)
+            ips = result.scalars()
+            return ips.first()
+
+    async def get_keys_by_client_id(self, client_id: int) -> Keys | None:
+        async with self.session_maker() as session:
+            query = select(Keys).join(Client).where(Client.id == client_id)
+            result = await session.execute(query)
+            keys = result.scalars()
+            return keys.first()
+
+    async def update_balance(
+        self, session, user_id: int, amount: int, op_type: OperationTypeEnum
+    ) -> bool:
         # noinspection PyTypeChecker
         query = select(User).where(User.id == user_id).with_for_update()
         result = await session.execute(query)
@@ -79,24 +94,26 @@ class DBManager:
         async with self.session_maker() as session:
             async with session.begin():
                 # noinspection PyTypeChecker
-                devices_query = select(Client).where(
-                    Client.user_id == new_client.user_id
-                ).with_for_update()
+                devices_query = (
+                    select(Client)
+                    .where(Client.user_id == new_client.user_id)
+                    .with_for_update()
+                )
 
                 devices = await session.execute(devices_query).scalars().all()
                 if len(devices) == DEVICES_MAX_AMOUNT:
                     raise DevicesLimitError()
 
                 balance_updated = await self.update_balance(
-                    session, new_client.user_id,
-                    amount=PRICE, op_type=OperationTypeEnum.DECREASE
+                    session,
+                    new_client.user_id,
+                    amount=PRICE,
+                    op_type=OperationTypeEnum.DECREASE,
                 )
                 if not balance_updated:
                     raise NotEnoughMoneyError()
 
-                ips_query = select(Ips).where(
-                    Ips.client_id is None
-                ).with_for_update()
+                ips_query = select(Ips).where(Ips.client_id is None).with_for_update()
 
                 ips = await session.execute(ips_query).scalars().first()
                 if not ips:

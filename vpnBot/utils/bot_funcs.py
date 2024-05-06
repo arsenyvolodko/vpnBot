@@ -8,8 +8,12 @@ from vpnBot.db.tables import User, Transaction, Keys, Client
 from vpnBot.enums import TransactionCommentEnum
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
 from vpnBot.exceptions.devices_limit_error import DevicesLimitError
+from vpnBot.exceptions.no_available_ips_error import NoAvailableIpsError
 from vpnBot.exceptions.not_enough_money_error import NotEnoughMoneyError
+from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
 from vpnBot.static.common import DEVICES_MAX_AMOUNT, PRICE
+from vpnBot.static.texts_storage import TextsStorage
+from vpnBot.wireguard_tools.wireguard_keys import WireguardKeys
 
 
 async def add_and_get_user(message: types.Message):
@@ -54,7 +58,7 @@ def _get_next_date(start_date: date | None = None):
 
 async def add_device(user_id: int):
     devices_num = await get_user_devices_amount(user_id)
-    keys: Keys = await db_manager.add_record(Keys())
+    keys: Keys = await db_manager.add_record(Keys(WireguardKeys()))
     new_client = Client(
         user_id=user_id,
         device_num=devices_num + 1,
@@ -62,3 +66,24 @@ async def add_device(user_id: int):
         keys_id=keys.id
     )
     return await db_manager.add_client(new_client)
+
+
+async def add_device_and_check_error(call: types.CallbackQuery) -> Client | None:
+    try:
+        client = await add_device(call.from_user.id)
+        return client
+    except DevicesLimitError:
+        error_text = TextsStorage.ADD_DEVICE_CONFIRMATION_INFO
+    except NoAvailableIpsError:
+        error_text = TextsStorage.NO_AVAILABLE_IPS_ERROR_MSG
+    except NotEnoughMoneyError:
+        error_text = TextsStorage.NOT_ENOUGH_MONEY_ERROR_MSG
+    except Exception:
+        error_text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+        # todo add logs here
+
+    await call.message.answer(
+        text=error_text,
+        reply_markup=get_back_to_main_menu_keyboard()
+    )
+    return None

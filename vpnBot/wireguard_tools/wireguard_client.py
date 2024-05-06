@@ -1,0 +1,52 @@
+from pathlib import Path
+
+import qrcode
+
+from vpnBot.wireguard_tools.wireguard_keys import WireguardKeys
+
+
+class WireguardClient:
+
+    def __init__(
+        self, name: str, ipv4: str, ipv6: str, keys: WireguardKeys, endpoint: str
+    ):
+        if not all((name, ipv4, ipv6, keys, endpoint)):
+            raise ValueError("Config params cannot be None.")
+        self.name = name
+        self.ipv4 = ipv4
+        self.ipv6 = ipv6
+        self.keys = keys
+        self.endpoint = endpoint
+
+    def gen_qr_config(self, dir_path: Path) -> Path:
+        file_path = self._gen_path(dir_path, f"{self.name}.png")
+        config_data = self._get_config()
+        img = qrcode.make(config_data)
+        img.save(file_path)
+        return file_path
+
+    def gen_text_config(self, dir_path: Path) -> Path:
+        file_path = self._gen_path(dir_path, f"{self.name}.conf")
+        with file_path.open("w") as file:
+            config_data = self._get_config()
+            file.write(config_data)
+        return file_path
+
+    @staticmethod
+    def _gen_path(path: Path, file_name: str) -> Path:
+        path.mkdir(parents=True, exist_ok=True)
+        file_path = path / file_name
+        return file_path
+
+    def _get_config(self) -> str:
+        config_data = ""
+        config_data += "[Interface]\n"
+        config_data += f"PrivateKey = {self.keys.private_key}\n"
+        config_data += f"Address = {self.ipv4}, {self.ipv6}\n"
+        config_data += "DNS = 1.1.1.1, 1.0.0.1\n"
+        config_data += "\n"
+        config_data += "[Peer]\n"
+        config_data += f"PublicKey = {self.keys.public_key}\n"
+        config_data += f"Endpoint = {self.endpoint}\n"
+        config_data += "AllowedIPs = 0.0.0.0/0, ::/0\n"
+        return config_data
