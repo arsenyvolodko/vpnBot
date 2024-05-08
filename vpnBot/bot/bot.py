@@ -1,8 +1,6 @@
-from io import BytesIO
-
 from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import InputFile
+from aiogram.types import FSInputFile
 
 from vpnBot import config
 from vpnBot.db.manager import db_manager
@@ -14,6 +12,7 @@ from vpnBot.utils.bot_funcs import (
     get_user_balance,
     add_device_and_check_error,
 )
+from vpnBot.utils.files import delete_file
 from vpnBot.wireguard_tools.wireguard_client import WireguardClient
 
 dp = Dispatcher()
@@ -68,7 +67,7 @@ async def handle_query(call: types.CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION)
+@dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION.callback)
 async def add_device_confirmed(call: types.CallbackQuery):
     if not (client := await add_device_and_check_error(call)):
         return
@@ -85,11 +84,18 @@ async def add_device_confirmed(call: types.CallbackQuery):
     config_file = wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
     await call.message.delete()
 
-    with open(config_file, "rb") as config_file:
-        file_data = BytesIO(config_file.read())
-        await call.bot.send_document(
-            chat_id=call.from_user.id,
-            document=InputFile(file_data, filename=f"NexVpn{client.device_num}.conf"),
-        )
-    await call.bot.send_photo(call.from_user.id, open(f"{qr_file}", "rb"))
+    await call.bot.send_document(
+        chat_id=call.from_user.id,
+        document=FSInputFile(config_file, filename=f"NexVpn{client.device_num}.conf"),
+    )
 
+    await call.bot.send_photo(call.from_user.id, photo=FSInputFile(qr_file))
+
+    await call.bot.send_message(
+        call.from_user.id,
+        text=TextsStorage.MAIN_MENU_TEXT,
+        reply_markup=get_main_menu_keyboard(),
+    )
+
+    delete_file(qr_file)
+    delete_file(config_file)

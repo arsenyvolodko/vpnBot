@@ -1,6 +1,6 @@
 import asyncio
 
-from sqlalchemy import select
+from sqlalchemy import select, func, null
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
 
 from vpnBot.config import DATABASE_URL
@@ -10,7 +10,8 @@ from vpnBot.enums.operation_type_enum import OperationTypeEnum
 from vpnBot.exceptions.devices_limit_error import DevicesLimitError
 from vpnBot.exceptions.no_available_ips_error import NoAvailableIpsError
 from vpnBot.exceptions.not_enough_money_error import NotEnoughMoneyError
-from vpnBot.static.common import DEVICES_MAX_AMOUNT
+from vpnBot.static.common import *
+from vpnBot.utils.date_util import get_next_date
 
 
 class EngineManager:
@@ -73,8 +74,27 @@ class DBManager:
             keys = result.scalars()
             return keys.first()
 
+    async def add_transaction(
+        self,
+        session,
+        user_id: int,
+        value: int,
+        op_type: OperationTypeEnum,
+        comment: TransactionCommentEnum,
+    ):
+        new_transaction = Transaction(
+            user_id=user_id, value=value, operation_type=op_type, comment=comment
+        )
+
+        session.add(new_transaction)
+
     async def update_balance(
-        self, session, user_id: int, amount: int, op_type: OperationTypeEnum
+        self,
+        session,
+        user_id: int,
+        value: int,
+        op_type: OperationTypeEnum,
+        comment: TransactionCommentEnum,
     ) -> bool:
         # noinspection PyTypeChecker
         query = select(User).where(User.id == user_id).with_for_update()
@@ -82,45 +102,58 @@ class DBManager:
         user = result.scalars().first()
 
         if op_type == OperationTypeEnum.DECREASE:
-            if user.balance < amount:
+            if user.balance < value:
                 return False
-            user.balance -= amount
+            user.balance -= value
         else:
-            user.balance += amount
-        # session.add(user)  # todo ??
+            user.balance += value
+        await self.add_transaction(
+            session, user_id=user_id, value=value, op_type=op_type, comment=comment
+        )
         return True
 
-    async def add_client(self, new_client: Client):
+    async def add_client(self, user_id: int):
         async with self.session_maker() as session:
             async with session.begin():
                 # noinspection PyTypeChecker
-                devices_query = (
-                    select(Client)
-                    .where(Client.user_id == new_client.user_id)
-                    .with_for_update()
-                )
-
-                devices = await session.execute(devices_query).scalars().all()
-                if len(devices) == DEVICES_MAX_AMOUNT:
+                devices_query = select(func.count()).where(Client.user_id == user_id)
+                devices_result = await session.execute(devices_query)
+                devices_num = devices_result.scalar()
+                if devices_num == DEVICES_MAX_AMOUNT:
                     raise DevicesLimitError()
 
                 balance_updated = await self.update_balance(
                     session,
-                    new_client.user_id,
-                    amount=PRICE,
+                    user_id,
+                    value=PRICE,
                     op_type=OperationTypeEnum.DECREASE,
+                    comment=TransactionCommentEnum.ADD_DEVICE,
                 )
                 if not balance_updated:
                     raise NotEnoughMoneyError()
 
-                ips_query = select(Ips).where(Ips.client_id is None).with_for_update()
+                ips_query = select(Ips).where(Ips.client_id == null()).with_for_update()
+                ips_result = await session.execute(ips_query)
+                ips = ips_result.scalars().first()
 
-                ips = await session.execute(ips_query).scalars().first()
                 if not ips:
                     raise NoAvailableIpsError()
+
+                keys = Keys(WireguardKeys())
+                session.add(keys)
+                await session.flush()
+
+                new_client = Client(
+                    user_id=user_id,
+                    device_num=devices_num + 1,
+                    end_date=get_next_date(),
+                    keys_id=keys.id,
+                )
+                session.add(new_client)
+                await session.flush()
+
                 ips.client_id = new_client.id
 
-                session.add(new_client)
                 await session.commit()
                 return new_client
 

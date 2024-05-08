@@ -1,12 +1,9 @@
-import subprocess
 from datetime import datetime
 from sqlalchemy import BigInteger, Column, ForeignKey, Date, DateTime
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from vpnBot.enums.operation_type_enum import OperationTypeEnum
-from vpnBot.enums.payment_status_enum import PaymentStatusEnum
-from vpnBot.enums.transaction_comment_enum import TransactionCommentEnum
+from vpnBot.enums import *
 from vpnBot.static.common import PRICE
 from vpnBot.wireguard_tools.wireguard_keys import WireguardKeys
 
@@ -36,7 +33,7 @@ class Ips(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    interface: Mapped[int] = mapped_column(nullable=False, default=0)
+    interface: Mapped[str] = mapped_column(nullable=False, default='wg0')
 
     ipv4: Mapped[str] = mapped_column(unique=True, nullable=False)
 
@@ -96,6 +93,8 @@ class Transaction(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
+
+    value: Mapped[int] = mapped_column(nullable=False)
 
     operation_type: Mapped[OperationTypeEnum] = mapped_column(nullable=False)
 

@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 
+from vpnBot.config import DEBUG
 from vpnBot.wireguard_tools.exceptions.client_not_found_error import ClientNotFoundError
 from vpnBot.wireguard_tools.exceptions.sync_config_error import SyncConfigError
 from vpnBot.wireguard_tools.wireguard_client import WireguardClient
@@ -29,7 +30,8 @@ class WireguardConfig:
         with open(self.config_path, "a") as file:
             file.write(new_data)
             file.close()
-        self._sync_config()
+        if not DEBUG:
+            self._sync_config()
 
     def remove_client(self, client: WireguardClient):
         data_to_delete = self._gen_client_data(client)
@@ -41,7 +43,8 @@ class WireguardConfig:
 
         with open(self.config_path, "w") as file:
             file.write(new_data)
-        self._sync_config()
+        if not DEBUG:
+            self._sync_config()
 
     def _get_data_from_server_file(self) -> str:
         with open(self.config_path, "r") as file:

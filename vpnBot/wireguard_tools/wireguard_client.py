@@ -21,8 +21,9 @@ class WireguardClient:
     def gen_qr_config(self, dir_path: Path) -> Path:
         file_path = self._gen_path(dir_path, f"{self.name}.png")
         config_data = self._get_config()
+        print(config_data)
         img = qrcode.make(config_data)
-        img.save(file_path)
+        img.save(str(file_path))
         return file_path
 
     def gen_text_config(self, dir_path: Path) -> Path:
@@ -36,6 +37,10 @@ class WireguardClient:
     def _gen_path(path: Path, file_name: str) -> Path:
         path.mkdir(parents=True, exist_ok=True)
         file_path = path / file_name
+
+        with open(file_path, "a"):
+            pass
+
         return file_path
 
     def _get_config(self) -> str:
