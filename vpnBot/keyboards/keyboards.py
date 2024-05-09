@@ -9,10 +9,14 @@ from vpnBot.static.texts_storage import TextsStorage
 
 def get_start_keyboard() -> types.InlineKeyboardMarkup:
     inline_keyboard = [
-        [ButtonsStorage.WG_APP_ANDROID.get_button(url=TextsStorage.WG_APP_ANDROID_LINK)],
+        [
+            ButtonsStorage.WG_APP_ANDROID.get_button(
+                url=TextsStorage.WG_APP_ANDROID_LINK
+            )
+        ],
         [ButtonsStorage.WG_APP_IOS.get_button(url=TextsStorage.WG_APP_IOS_LINK)],
         [ButtonsStorage.WG_APP_PC.get_button(url=TextsStorage.WG_APP_PC_LINK)],
-        [ButtonsStorage.GO_TO_MAIN_MENU.get_button()]
+        [ButtonsStorage.GO_TO_MAIN_MENU.get_button()],
     ]
     return types.InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
@@ -39,9 +43,10 @@ def construct_keyboard(*args, **kwargs):
 
 def get_main_menu_keyboard():
     return construct_keyboard(
-        ButtonsStorage.DEVICES, ButtonsStorage.FINANCE,
-        ButtonsStorage.PROMO_CODE, ButtonsStorage.INVITATION_LINK,
-        with_back_to_menu=True
+        ButtonsStorage.DEVICES,
+        ButtonsStorage.FINANCE,
+        ButtonsStorage.PROMO_CODE,
+        ButtonsStorage.INVITATION_LINK,
     )
 
 
@@ -50,8 +55,8 @@ def get_back_to_main_menu_keyboard():
 
 
 def get_device_button_text(device: Client):
-    status = '🟢' if device.active else '🔴'
-    return f'{ButtonsStorage.DEVICE.text.format(device.device_num)} {status}'
+    status = "🟢" if device.active else "🔴"
+    return f"{ButtonsStorage.DEVICE.text.format(device.device_num)} {status}"
 
 
 def get_devices_keyboard(devices: list[Client], add_new_allowed: bool):
@@ -60,18 +65,17 @@ def get_devices_keyboard(devices: list[Client], add_new_allowed: bool):
         builder.button(
             text=get_device_button_text(device),
             callback_data=DevicesCallbackFactory(
-                callback=ButtonsStorage.DEVICE.callback,
-                device_num=device.device_num
-            )
+                callback=ButtonsStorage.DEVICE.callback, device_num=device.device_num
+            ),
         )
     if add_new_allowed:
         builder.button(
             text=ButtonsStorage.ADD_DEVICE.text,
-            callback_data=ButtonsStorage.ADD_DEVICE.callback
+            callback_data=ButtonsStorage.ADD_DEVICE.callback,
         )
     builder.button(
         text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
-        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
+        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback,
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -80,6 +84,30 @@ def get_devices_keyboard(devices: list[Client], add_new_allowed: bool):
 def get_add_device_confirmation_keyboard():
     inline_keyboard = [
         [ButtonsStorage.ADD_DEVICE_CONFIRMATION.get_button()],
-        [ButtonsStorage.DEVICES.get_button(text=ButtonsStorage.GO_BACK.text)]
+        [ButtonsStorage.DEVICES.get_button(text=ButtonsStorage.GO_BACK.text)],
     ]
     return types.InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
+def get_specific_device_keyboard(device_num: int):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=ButtonsStorage.GET_DEVICES_CONFIG_AND_QR.text,
+        callback_data=DevicesCallbackFactory(
+            callback=ButtonsStorage.GET_DEVICES_CONFIG_AND_QR.callback,
+            device_num=device_num,
+        ),
+    )
+    builder.button(
+        text=ButtonsStorage.DELETE_DEVICE.text,
+        callback_data=DevicesCallbackFactory(
+            callback=ButtonsStorage.DELETE_DEVICE.callback,
+            device_num=device_num,
+        ),
+    )
+    builder.button(
+        text=ButtonsStorage.GO_BACK.text,
+        callback_data=ButtonsStorage.DEVICES.callback,
+    )
+    builder.adjust(1)
+    return builder.as_markup()

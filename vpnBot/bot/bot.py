@@ -1,6 +1,6 @@
 from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, CallbackQuery, Message
 
 from vpnBot import config
 from vpnBot.db.manager import db_manager
@@ -13,6 +13,7 @@ from vpnBot.utils.bot_funcs import (
     add_device_and_check_error,
 )
 from vpnBot.utils.files import delete_file
+from vpnBot.utils.filters import MainMenuFilter
 from vpnBot.wireguard_tools.wireguard_client import WireguardClient
 
 dp = Dispatcher()
@@ -21,22 +22,14 @@ dp.include_router(router)
 
 
 @dp.message(CommandStart())
-async def welcome_message(message: types.Message):
+async def welcome_message(message: Message):
     await message.answer(TextsStorage.START_TEXT, reply_markup=get_start_keyboard())
     await add_and_get_user(message)
     # todo check args and link
 
 
-@dp.callback_query(
-    # F.data in [
-    #     ButtonsStorage.GO_TO_MAIN_MENU.callback,
-    #     ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
-    # ]
-    F.data
-    == ButtonsStorage.GO_TO_MAIN_MENU.callback
-    # F.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
-)
-async def handle_callback(call: types.CallbackQuery):
+@router.callback_query(MainMenuFilter())
+async def handle_callback(call: CallbackQuery):
     await call.message.edit_text(
         text=TextsStorage.MAIN_MENU_TEXT,
         reply_markup=get_main_menu_keyboard(),
@@ -44,7 +37,7 @@ async def handle_callback(call: types.CallbackQuery):
 
 
 @dp.callback_query(F.data == ButtonsStorage.DEVICES.callback)
-async def handle_callback(call: types.CallbackQuery):
+async def handle_callback(call: CallbackQuery):
     user_devices = await db_manager.get_user_devices(call.from_user.id)
     await call.message.edit_text(
         text=(
@@ -59,7 +52,7 @@ async def handle_callback(call: types.CallbackQuery):
 
 
 @dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE.callback)
-async def handle_query(call: types.CallbackQuery):
+async def handle_query(call: CallbackQuery):
     user_balance = await get_user_balance(call.from_user.id)
     await call.message.edit_text(
         text=TextsStorage.ADD_DEVICE_CONFIRMATION_INFO.format(user_balance),
@@ -68,7 +61,7 @@ async def handle_query(call: types.CallbackQuery):
 
 
 @dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION.callback)
-async def add_device_confirmed(call: types.CallbackQuery):
+async def add_device_confirmed(call: CallbackQuery):
     if not (client := await add_device_and_check_error(call)):
         return
     wg_keys = (await db_manager.get_keys_by_client_id(client.id)).get_as_wg_keys()
@@ -99,3 +92,42 @@ async def add_device_confirmed(call: types.CallbackQuery):
 
     delete_file(qr_file)
     delete_file(config_file)
+
+
+# noinspection PyTypeChecker
+@router.callback_query(
+    DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DELETE_DEVICE.callback)
+)
+async def handle_specific_device_query(
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
+):
+    device_num = callback_data.device_num
+    client = await db_manager.get_clint_by_user_id_and_device_num(
+        call.from_user.id, device_num
+    )
+    try:
+        await db_manager.delete_client(client)
+        text = TextsStorage.DEVICE_SUCCESSFULLY_DELETED
+    except Exception:
+        text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+    await call.message.edit_text(
+        text,
+        reply_markup=get_back_to_main_menu_keyboard(),
+    )
+
+
+@router.callback_query(DevicesCallbackFactory.filter())
+async def handle_specific_device_query(
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
+):
+    device_num = callback_data.device_num
+    client = await db_manager.get_clint_by_user_id_and_device_num(
+        call.from_user.id, device_num
+    )
+    status = TextsStorage.ACTIVE if client.active else TextsStorage.INACTIVE
+    await call.message.edit_text(
+        text=TextsStorage.SPECIFIC_DEVICE_INFO_TEXT.format(
+            device_num, status, client.end_date.strftime("%d.%m.%Y")
+        ),
+        reply_markup=get_specific_device_keyboard(device_num),
+    )

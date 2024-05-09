@@ -24,6 +24,9 @@ class ButtonsTextStorage(ABC):
     ADD_DEVICE = 'Добавить устройство'
     ADD_DEVICE_CONFIRMATION = 'Продолжить'
 
+    GET_DEVICES_CONFIG_AND_QR = 'Получить конфиг и qr'
+    DELETE_DEVICE = 'Удалить устройство'
+
 
 class AutoNameButtonMeta(type):
     def __new__(cls, name, bases, namespace):
@@ -56,3 +59,6 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
     DEVICE = Button()
     ADD_DEVICE = Button()
     ADD_DEVICE_CONFIRMATION = Button()
+
+    GET_DEVICES_CONFIG_AND_QR = Button()
+    DELETE_DEVICE = Button()

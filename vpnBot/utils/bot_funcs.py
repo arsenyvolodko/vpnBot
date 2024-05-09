@@ -11,7 +11,8 @@ from vpnBot.static.texts_storage import TextsStorage
 
 
 async def add_and_get_user(message: types.Message):
-    user = await db_manager.get_user_by_id(message.from_user.id)
+    # user = await db_manager.get_user_by_id(message.from_user.id)
+    user = await db_manager.get_record(User, message.from_user.id)
     if not user:
         new_user = User(id=message.from_user.id, username=message.from_user.username)
         user = await db_manager.add_record(new_user)
@@ -26,7 +27,8 @@ async def add_and_get_user(message: types.Message):
 
 
 async def get_user_balance(user_id: int):
-    user = await db_manager.get_user_by_id(user_id)
+    # user = await db_manager.get_user_by_id(user_id)
+    user = await db_manager.get_record(User, user_id)
     return user.balance
 
 
