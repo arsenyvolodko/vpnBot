@@ -8,5 +8,5 @@ class MainMenuFilter(Filter):
     async def __call__(self, call: CallbackQuery) -> bool:
         return (
             call.data == ButtonsStorage.GO_TO_MAIN_MENU.callback
-            or call.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU
+            or call.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
         )
