@@ -17,7 +17,7 @@ class ButtonsTextStorage(ABC):
 
     DEVICES = 'Устройства 📱'
     FINANCE = 'Финансы 💳'
-    PROMO_CODE = 'Промокоды'
+    PROMO_CODE = 'Применить промокод'
     INVITATION_LINK = 'Пригласительные ссылки'
 
     DEVICE = 'Устройство №{}'
@@ -26,6 +26,11 @@ class ButtonsTextStorage(ABC):
 
     GET_DEVICES_CONFIG_AND_QR = 'Получить конфиг и qr'
     DELETE_DEVICE = 'Удалить устройство'
+
+    GET_TRANSACTIONS_HISTORY = 'История транзакций'
+    FILL_UP_BALANCE = 'Пополнить баланс'
+
+    FILL_UP_BALANCE_VALUE = ''
 
 
 class AutoNameButtonMeta(type):
@@ -62,3 +67,8 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
 
     GET_DEVICES_CONFIG_AND_QR = Button()
     DELETE_DEVICE = Button()
+
+    GET_TRANSACTIONS_HISTORY = Button()
+    FILL_UP_BALANCE = Button()
+
+    FILL_UP_BALANCE_VALUE = Button()

@@ -4,6 +4,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from vpnBot.db.tables import Client
 from vpnBot.keyboards.buttons_storage import ButtonsStorage
 from vpnBot.keyboards.fabrics.devices_callback_factory import DevicesCallbackFactory
+from vpnBot.keyboards.fabrics.fill_up_balance_factory import FillUpBalanceFactory
+from vpnBot.static.common import FILLING_UP_VALUES
 from vpnBot.static.texts_storage import TextsStorage
 
 
@@ -111,3 +113,30 @@ def get_specific_device_keyboard(device_num: int):
     )
     builder.adjust(1)
     return builder.as_markup()
+
+
+def get_finance_callback():
+    return construct_keyboard(
+        ButtonsStorage.GET_TRANSACTIONS_HISTORY,
+        ButtonsStorage.FILL_UP_BALANCE,
+        ButtonsStorage.GO_BACK_TO_MAIN_MENU
+    )
+
+
+def get_fill_up_balance_keyboard():
+    builder = InlineKeyboardBuilder()
+    for balance_value in FILLING_UP_VALUES:
+        builder.button(
+            text=str(balance_value) + '₽',
+            callback_data=FillUpBalanceFactory(
+                callback=ButtonsStorage.FILL_UP_BALANCE_VALUE.callback,
+                value=balance_value
+            ),
+        )
+    builder.button(
+        text=ButtonsStorage.GO_BACK.text,
+        callback_data=ButtonsStorage.FINANCE.callback,
+    )
+    builder.adjust(3, 3, 1)
+    return builder.as_markup()
+

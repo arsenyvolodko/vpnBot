@@ -126,19 +126,18 @@ class DBManager:
         )
         return True
 
-    async def add_client(self, user_id: int):
+    async def add_client(self, user_id: int) -> Client:
         async with self.session_maker() as session:
             async with session.begin():
                 # noinspection PyTypeChecker
-                devices_query = (
-                    select(Client)
-                    .where(Client.user_id == user_id)
-                    .order_by(desc(Client.device_num))
-                )
+                devices_query = select(Client).where(Client.user_id == user_id)
                 devices_result = await session.execute(devices_query)
-                devices_num = devices_result.scalars().first().device_num
-                if devices_num == DEVICES_MAX_AMOUNT:
+                devices = devices_result.scalars().all()
+
+                if len(devices) == DEVICES_MAX_AMOUNT:
                     raise DevicesLimitError()
+
+                new_device_num = devices[-1].device_num + 1 if devices else 1
 
                 balance_updated = await self.update_balance(
                     session,
@@ -163,7 +162,7 @@ class DBManager:
 
                 new_client = Client(
                     user_id=user_id,
-                    device_num=devices_num + 1,
+                    device_num=new_device_num,
                     end_date=get_next_date(),
                     keys_id=keys.id,
                 )
@@ -186,7 +185,7 @@ class DBManager:
             result = await session.execute(query)
             return result.scalars().first()
 
-    async def delete_client(self, client: Client):
+    async def delete_client(self, client: Client) -> None:
         ips = await self.get_ips_by_client_id(client.id)
         keys = await self.get_keys_by_client_id(client.id)
         async with self.session_maker() as session:
@@ -195,6 +194,13 @@ class DBManager:
                 await session.delete(client)
                 await session.delete(keys)
             await session.commit()
+
+    async def get_user_transactions(self, user_id) -> list[Transaction]:
+        async with self.session_maker() as session:
+            async with session.begin():
+                query = select(Transaction).where(Transaction.user_id == user_id)
+                result = await session.execute(query)
+                return result.scalars().all()
 
 
 db_manager = DBManager()

@@ -1,13 +1,20 @@
 from aiogram import types
+from aiogram.types import CallbackQuery, FSInputFile
 
+from vpnBot import config
 from vpnBot.db.manager import db_manager
 from vpnBot.db.tables import User, Transaction, Client
 from vpnBot.enums import TransactionCommentEnum
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
 from vpnBot.exceptions import *
-from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
+from vpnBot.keyboards.keyboards import (
+    get_back_to_main_menu_keyboard,
+    get_main_menu_keyboard,
+)
 from vpnBot.static.common import DEVICES_MAX_AMOUNT, PRICE
 from vpnBot.static.texts_storage import TextsStorage
+from vpnBot.utils.files import delete_file
+from vpnBot.wireguard_tools.wireguard_client import WireguardClient
 
 
 async def add_and_get_user(message: types.Message):
@@ -49,7 +56,7 @@ async def add_device_and_check_error(call: types.CallbackQuery) -> Client | None
         client = await db_manager.add_client(call.from_user.id)
         return client
     except DevicesLimitError:
-        error_text = TextsStorage.ADD_DEVICE_CONFIRMATION_INFO
+        error_text = TextsStorage.DEVICE_LIMIT_ERROR_MSG
     except NoAvailableIpsError:
         error_text = TextsStorage.NO_AVAILABLE_IPS_ERROR_MSG
     except NotEnoughMoneyError:
@@ -62,3 +69,48 @@ async def add_device_and_check_error(call: types.CallbackQuery) -> Client | None
         text=error_text, reply_markup=get_back_to_main_menu_keyboard()
     )
     return None
+
+
+async def get_wg_client_by_client(client: Client) -> WireguardClient:
+    wg_keys = (await db_manager.get_keys_by_client_id(client.id)).get_as_wg_keys()
+    ips = await db_manager.get_ips_by_client_id(client.id)
+    wg_client = WireguardClient(
+        name=f"{client.user_id}_{client.device_num}",
+        ipv4=ips.ipv4,
+        ipv6=ips.ipv6,
+        keys=wg_keys,
+        endpoint=config.SERVER_ENDPOINT,
+    )
+    return wg_client
+
+
+async def send_config_and_qr(wg_client: WireguardClient, call: CallbackQuery, device_num: int):
+    qr_file = wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
+    config_file = wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
+    await call.message.delete()
+
+    await call.bot.send_document(
+        chat_id=call.from_user.id,
+        document=FSInputFile(config_file, filename=f"NexVpn{device_num}.conf"),
+    )
+
+    await call.bot.send_photo(call.from_user.id, photo=FSInputFile(qr_file))
+
+    await call.bot.send_message(
+        call.from_user.id,
+        text=TextsStorage.MAIN_MENU_TEXT,
+        reply_markup=get_main_menu_keyboard(),
+    )
+
+    await delete_file(qr_file)
+    await delete_file(config_file)
+
+
+async def process_transaction(transaction: Transaction):
+    time = transaction.operation_time.strftime("%d.%m.%Y, %H:%M")
+    text = f'{time}\n'
+    text += 'Операция: '
+    text += 'списание ' if transaction.operation_type == OperationTypeEnum.DECREASE else 'пополнение '
+    text += str(transaction.value) + '₽\n'
+    text += f'Комментарий: {transaction.comment.value}'
+    return text

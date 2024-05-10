@@ -1,9 +1,13 @@
+import datetime
+
 from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, CallbackQuery, Message
 
 from vpnBot import config
 from vpnBot.db.manager import db_manager
+from vpnBot.db.tables import User
 from vpnBot.keyboards.keyboards import *
 from vpnBot.static.common import *
 from vpnBot.static.texts_storage import *
@@ -11,6 +15,9 @@ from vpnBot.utils.bot_funcs import (
     add_and_get_user,
     get_user_balance,
     add_device_and_check_error,
+    get_wg_client_by_client,
+    send_config_and_qr,
+    process_transaction,
 )
 from vpnBot.utils.files import delete_file
 from vpnBot.utils.filters import MainMenuFilter
@@ -55,7 +62,7 @@ async def handle_callback(call: CallbackQuery):
 async def handle_query(call: CallbackQuery):
     user_balance = await get_user_balance(call.from_user.id)
     await call.message.edit_text(
-        text=TextsStorage.ADD_DEVICE_CONFIRMATION_INFO.format(user_balance),
+        text=TextsStorage.ADD_DEVICE_CONFIRMATION_INFO.format(PRICE, user_balance),
         reply_markup=get_add_device_confirmation_keyboard(),
     )
 
@@ -64,34 +71,8 @@ async def handle_query(call: CallbackQuery):
 async def add_device_confirmed(call: CallbackQuery):
     if not (client := await add_device_and_check_error(call)):
         return
-    wg_keys = (await db_manager.get_keys_by_client_id(client.id)).get_as_wg_keys()
-    ips = await db_manager.get_ips_by_client_id(client.id)
-    wg_client = WireguardClient(
-        name=f"{client.user_id}_{client.device_num}",
-        ipv4=ips.ipv4,
-        ipv6=ips.ipv6,
-        keys=wg_keys,
-        endpoint=config.SERVER_ENDPOINT,
-    )
-    qr_file = wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
-    config_file = wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
-    await call.message.delete()
-
-    await call.bot.send_document(
-        chat_id=call.from_user.id,
-        document=FSInputFile(config_file, filename=f"NexVpn{client.device_num}.conf"),
-    )
-
-    await call.bot.send_photo(call.from_user.id, photo=FSInputFile(qr_file))
-
-    await call.bot.send_message(
-        call.from_user.id,
-        text=TextsStorage.MAIN_MENU_TEXT,
-        reply_markup=get_main_menu_keyboard(),
-    )
-
-    delete_file(qr_file)
-    delete_file(config_file)
+    wg_client = await get_wg_client_by_client(client)
+    await send_config_and_qr(wg_client, call, client.device_num)
 
 
 # noinspection PyTypeChecker
@@ -116,7 +97,27 @@ async def handle_specific_device_query(
     )
 
 
-@router.callback_query(DevicesCallbackFactory.filter())
+# noinspection PyTypeChecker
+@router.callback_query(
+    DevicesCallbackFactory.filter(
+        F.callback == ButtonsStorage.GET_DEVICES_CONFIG_AND_QR.callback
+    )
+)
+async def handle_get_device_config_and_qr_query(
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
+):
+    device_num = callback_data.device_num
+    client = await db_manager.get_clint_by_user_id_and_device_num(
+        call.from_user.id, device_num
+    )
+    wg_client = await get_wg_client_by_client(client)
+    await send_config_and_qr(wg_client, call, client.device_num)
+
+
+# noinspection PyTypeChecker
+@router.callback_query(
+    DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DEVICE.callback)
+)
 async def handle_specific_device_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
@@ -131,3 +132,58 @@ async def handle_specific_device_query(
         ),
         reply_markup=get_specific_device_keyboard(device_num),
     )
+
+
+@router.callback_query(F.data == ButtonsStorage.FINANCE.callback)
+async def handle_finance_callback(call: CallbackQuery):
+    user_id = call.from_user.id
+    user = await db_manager.get_record(User, user_id)
+    await call.message.edit_text(
+        TextsStorage.ON_YOUR_ACCOUNT.format(user.balance),
+        reply_markup=get_finance_callback(),
+    )
+
+
+@router.callback_query(F.data == ButtonsStorage.GET_TRANSACTIONS_HISTORY.callback)
+async def handle_get_transactions_query(call: CallbackQuery):
+    user_id = call.from_user.id
+    user: User = await db_manager.get_record(User, user_id)
+    balance = user.balance
+    cur_time = datetime.datetime.now().strftime("%d.%m.%Y, %H:%M")
+    text = TextsStorage.CURRENT_BALANCE.format(balance) + "\n\n"
+    result = await db_manager.get_user_transactions(user_id)
+    for transaction in result:
+        cur_transaction = await process_transaction(transaction)
+        text += cur_transaction + "\n\n"
+
+    text += TextsStorage.ACTUAL_ON_MOMENT.format(cur_time)
+
+    file_path = config.PATH_TO_CLIENTS_FILES / f"{user_id}_transactions_data.txt"
+    with open(file_path, "w") as file:
+        file.write(text)
+        file.close()
+
+    await call.bot.send_document(
+        chat_id=call.from_user.id,
+        document=FSInputFile(file_path, filename="Transactions.txt"),
+    )
+
+    await call.message.answer(
+        TextsStorage.MAIN_MENU_TEXT,
+        reply_markup=get_main_menu_keyboard()
+    )
+
+    await delete_file(file_path)
+
+
+@router.callback_query(F.data == ButtonsStorage.FILL_UP_BALANCE.callback)
+async def handle_fill_up_balance_query(call: CallbackQuery):
+    await call.message.answer(
+        TextsStorage.CHOOSE_SUM_TO_FILL_UP_BALANCE,
+        reply_markup=get_fill_up_balance_keyboard()
+    )
+
+
+@router.callback_query(F.data == ButtonsStorage.PROMO_CODE.callback)
+async def handle_promo_code_query(call: CallbackQuery, state: FSMContext = None):
+    pass
