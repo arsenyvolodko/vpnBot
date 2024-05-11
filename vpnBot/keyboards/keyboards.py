@@ -140,3 +140,6 @@ def get_fill_up_balance_keyboard():
     builder.adjust(3, 3, 1)
     return builder.as_markup()
 
+
+def get_cancel_state_keyboard():
+    return construct_keyboard(ButtonsStorage.CANCEL_STATE)

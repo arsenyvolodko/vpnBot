@@ -112,6 +112,8 @@ class PromoCode(Base):
 
     name: Mapped[str] = mapped_column(unique=True, nullable=False)
 
+    active: Mapped[bool] = mapped_column(nullable=False, default=True)
+
 
 class UsedPromoCode(Base):
     __tablename__ = "used_promo_code"

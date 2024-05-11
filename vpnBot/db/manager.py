@@ -1,15 +1,14 @@
 import asyncio
 
-from sqlalchemy import select, func, null, desc
+from sqlalchemy import select, null
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
 
 from vpnBot.config import DATABASE_URL
 from vpnBot.db.tables import *
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
 
-from vpnBot.exceptions.devices_limit_error import DevicesLimitError
-from vpnBot.exceptions.no_available_ips_error import NoAvailableIpsError
-from vpnBot.exceptions.not_enough_money_error import NotEnoughMoneyError
+from vpnBot.exceptions.clients import *
+from vpnBot.exceptions.promo_codes import *
 from vpnBot.static.common import *
 from vpnBot.utils.date_util import get_next_date
 
@@ -201,6 +200,50 @@ class DBManager:
                 query = select(Transaction).where(Transaction.user_id == user_id)
                 result = await session.execute(query)
                 return result.scalars().all()
+
+    async def add_promo_code_usage(self, promo_code_text: str, user_id: int) -> PromoCode:
+        async with self.session_maker() as session:
+            async with session.begin():
+
+                promo_code_query = select(PromoCode).where(
+                    PromoCode.name == promo_code_text
+                )
+                promo_code_result = await session.execute(promo_code_query)
+                promo_code: PromoCode = promo_code_result.scalars().first()
+
+                if not promo_code:
+                    raise NoSuchPromoCodeError()
+
+                # noinspection PyTypeChecker
+                used_promo_code_query = select(UsedPromoCode).where(
+                    UsedPromoCode.promo_code_id == promo_code.id,
+                    UsedPromoCode.user_id == user_id,
+                )
+                used_promo_code_result = await session.execute(used_promo_code_query)
+                used_promo_code = used_promo_code_result.scalars().first()
+
+                if used_promo_code:
+                    raise AlreadyUsedPromoCodeError()
+
+                if not promo_code.active:
+                    raise PromoCodeInactiveError()
+
+                new_promo_code_usage = UsedPromoCode(
+                    user_id=user_id, promo_code_id=promo_code.id
+                )
+
+                session.add(new_promo_code_usage)
+
+                await self.update_balance(
+                    session,
+                    user_id,
+                    promo_code.value,
+                    OperationTypeEnum.INCREASE,
+                    comment=TransactionCommentEnum.PROMO_CODE,
+                )
+
+                await session.commit()
+                return promo_code
 
 
 db_manager = DBManager()

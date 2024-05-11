@@ -1,12 +1,15 @@
 from aiogram import types
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from vpnBot import config
 from vpnBot.db.manager import db_manager
 from vpnBot.db.tables import User, Transaction, Client
 from vpnBot.enums import TransactionCommentEnum
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
-from vpnBot.exceptions import *
+from vpnBot.exceptions.clients import *
+from vpnBot.exceptions.clients.client_base_error import ClientBaseError
+from vpnBot.exceptions.promo_codes import *
+from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import (
     get_back_to_main_menu_keyboard,
     get_main_menu_keyboard,
@@ -51,26 +54,6 @@ async def _check_devices_and_balance(devices_num: int, user_balance: int):
         raise NotEnoughMoneyError()
 
 
-async def add_device_and_check_error(call: types.CallbackQuery) -> Client | None:
-    try:
-        client = await db_manager.add_client(call.from_user.id)
-        return client
-    except DevicesLimitError:
-        error_text = TextsStorage.DEVICE_LIMIT_ERROR_MSG
-    except NoAvailableIpsError:
-        error_text = TextsStorage.NO_AVAILABLE_IPS_ERROR_MSG
-    except NotEnoughMoneyError:
-        error_text = TextsStorage.NOT_ENOUGH_MONEY_ERROR_MSG
-    except Exception as e:
-        print(e)
-        error_text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
-
-    await call.message.answer(
-        text=error_text, reply_markup=get_back_to_main_menu_keyboard()
-    )
-    return None
-
-
 async def get_wg_client_by_client(client: Client) -> WireguardClient:
     wg_keys = (await db_manager.get_keys_by_client_id(client.id)).get_as_wg_keys()
     ips = await db_manager.get_ips_by_client_id(client.id)
@@ -84,7 +67,9 @@ async def get_wg_client_by_client(client: Client) -> WireguardClient:
     return wg_client
 
 
-async def send_config_and_qr(wg_client: WireguardClient, call: CallbackQuery, device_num: int):
+async def send_config_and_qr(
+    wg_client: WireguardClient, call: CallbackQuery, device_num: int
+):
     qr_file = wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
     config_file = wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
     await call.message.delete()
@@ -108,9 +93,13 @@ async def send_config_and_qr(wg_client: WireguardClient, call: CallbackQuery, de
 
 async def process_transaction(transaction: Transaction):
     time = transaction.operation_time.strftime("%d.%m.%Y, %H:%M")
-    text = f'{time}\n'
-    text += 'Операция: '
-    text += 'списание ' if transaction.operation_type == OperationTypeEnum.DECREASE else 'пополнение '
-    text += str(transaction.value) + '₽\n'
-    text += f'Комментарий: {transaction.comment.value}'
+    text = f"{time}\n"
+    text += "Операция: "
+    text += (
+        "списание "
+        if transaction.operation_type == OperationTypeEnum.DECREASE
+        else "пополнение "
+    )
+    text += str(transaction.value) + "₽\n"
+    text += f"Комментарий: {transaction.comment.value}"
     return text

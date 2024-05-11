@@ -8,7 +8,7 @@ class ButtonsTextStorage(ABC):
     GO_BACK_TO_MAIN_MENU = 'Вернуться в меню'
 
     GO_BACK = 'Назад'
-    CANCEL = 'Отмена'
+    CANCEL_STATE = 'Отмена'
     CONTINUE = 'Продолжить'
 
     WG_APP_ANDROID = 'Android'
@@ -49,7 +49,7 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
     GO_BACK_TO_MAIN_MENU = Button()
     GO_BACK = Button()
 
-    CANCEL = Button()
+    CANCEL_STATE = Button()
     CONTINUE = Button()
 
     WG_APP_ANDROID = Button()

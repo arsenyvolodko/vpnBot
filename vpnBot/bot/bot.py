@@ -8,20 +8,21 @@ from aiogram.types import FSInputFile, CallbackQuery, Message
 from vpnBot import config
 from vpnBot.db.manager import db_manager
 from vpnBot.db.tables import User
+from vpnBot.exceptions.clients.client_base_error import ClientBaseError
+from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import *
+from vpnBot.static import states
 from vpnBot.static.common import *
 from vpnBot.static.texts_storage import *
 from vpnBot.utils.bot_funcs import (
     add_and_get_user,
     get_user_balance,
-    add_device_and_check_error,
     get_wg_client_by_client,
     send_config_and_qr,
     process_transaction,
 )
 from vpnBot.utils.files import delete_file
 from vpnBot.utils.filters import MainMenuFilter
-from vpnBot.wireguard_tools.wireguard_client import WireguardClient
 
 dp = Dispatcher()
 router = Router()
@@ -43,7 +44,7 @@ async def handle_callback(call: CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == ButtonsStorage.DEVICES.callback)
+@router.callback_query(F.data == ButtonsStorage.DEVICES.callback)
 async def handle_callback(call: CallbackQuery):
     user_devices = await db_manager.get_user_devices(call.from_user.id)
     await call.message.edit_text(
@@ -58,7 +59,7 @@ async def handle_callback(call: CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE.callback)
+@router.callback_query(F.data == ButtonsStorage.ADD_DEVICE.callback)
 async def handle_query(call: CallbackQuery):
     user_balance = await get_user_balance(call.from_user.id)
     await call.message.edit_text(
@@ -67,12 +68,22 @@ async def handle_query(call: CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION.callback)
+@router.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION.callback)
 async def add_device_confirmed(call: CallbackQuery):
-    if not (client := await add_device_and_check_error(call)):
+    try:
+        client = await db_manager.add_client(call.from_user.id)
+        await call.message.answer(TextsStorage.DEVICE_SUCCESSFULLY_ADDED)
+        wg_client = await get_wg_client_by_client(client)
+        await send_config_and_qr(wg_client, call, client.device_num)
         return
-    wg_client = await get_wg_client_by_client(client)
-    await send_config_and_qr(wg_client, call, client.device_num)
+    except ClientBaseError as e:
+        text = e.message
+    except Exception:
+        text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+
+    await call.message.edit_text(
+        text=text, reply_markup=get_back_to_main_menu_keyboard()
+    )
 
 
 # noinspection PyTypeChecker
@@ -169,8 +180,7 @@ async def handle_get_transactions_query(call: CallbackQuery):
     )
 
     await call.message.answer(
-        TextsStorage.MAIN_MENU_TEXT,
-        reply_markup=get_main_menu_keyboard()
+        TextsStorage.MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard()
     )
 
     await delete_file(file_path)
@@ -180,10 +190,45 @@ async def handle_get_transactions_query(call: CallbackQuery):
 async def handle_fill_up_balance_query(call: CallbackQuery):
     await call.message.answer(
         TextsStorage.CHOOSE_SUM_TO_FILL_UP_BALANCE,
-        reply_markup=get_fill_up_balance_keyboard()
+        reply_markup=get_fill_up_balance_keyboard(),
     )
 
 
 @router.callback_query(F.data == ButtonsStorage.PROMO_CODE.callback)
-async def handle_promo_code_query(call: CallbackQuery, state: FSMContext = None):
-    pass
+async def handle_promo_code_query(call: CallbackQuery, state: FSMContext):
+    await state.set_state(states.PROMO_CODE_EXPECTING_STATE)
+    await state.set_data({'message': call.message})
+    await call.message.edit_text(
+        TextsStorage.INPUT_PROMO_CODE, reply_markup=get_cancel_state_keyboard()
+    )
+
+
+@router.message(states.PROMO_CODE_EXPECTING_STATE)
+async def handle_message(message: Message, state: FSMContext):
+
+    state_data = await state.get_data()
+    msg_to_edit: Message = state_data['message']
+    await state.clear()
+    await msg_to_edit.edit_reply_markup(
+        reply_markup=None
+    )
+
+    try:
+        promo_code = await db_manager.add_promo_code_usage(
+            message.text.strip(), message.from_user.id
+        )
+        text = TextsStorage.PROMO_CODE_SUCCESSFULLY_APPLIED.format(promo_code.value)
+    except PromoCodeBaseError as e:
+        text = e.message
+    except Exception:
+        text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+
+    await message.answer(text=text, reply_markup=get_back_to_main_menu_keyboard())
+
+
+@router.callback_query(F.data == ButtonsStorage.CANCEL_STATE.callback)
+async def handle_cancel_state_query(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await call.message.edit_text(
+        TextsStorage.MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard()
+    )
