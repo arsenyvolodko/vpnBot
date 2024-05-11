@@ -1,13 +1,14 @@
 import datetime
 
 from aiogram import Dispatcher, Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, CallbackQuery, Message
 
 from vpnBot import config
-from vpnBot.db.manager import db_manager
-from vpnBot.db.tables import User
+from vpnBot.db import db_manager
+from vpnBot.db.tables import User, Transaction
+from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum
 from vpnBot.exceptions.clients.client_base_error import ClientBaseError
 from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import *
@@ -15,11 +16,11 @@ from vpnBot.static import states
 from vpnBot.static.common import *
 from vpnBot.static.texts_storage import *
 from vpnBot.utils.bot_funcs import (
-    add_and_get_user,
     get_user_balance,
     get_wg_client_by_client,
     send_config_and_qr,
     process_transaction,
+    generate_invitation_link,
 )
 from vpnBot.utils.files import delete_file
 from vpnBot.utils.filters import MainMenuFilter
@@ -30,10 +31,25 @@ dp.include_router(router)
 
 
 @dp.message(CommandStart())
-async def welcome_message(message: Message):
+async def welcome_message(message: Message, command: CommandObject):
+    user = await db_manager.get_record(User, message.from_user.id)
+    if not user:
+        new_user = User(id=message.from_user.id, username=message.from_user.username)
+        user = await db_manager.add_record(new_user)
+        new_transaction = Transaction(
+            user_id=user.id,
+            value=PRICE,
+            operation_type=OperationTypeEnum.INCREASE,
+            comment=TransactionCommentEnum.START_BALANCE,
+        )
+        await db_manager.add_record(new_transaction)
+
     await message.answer(TextsStorage.START_TEXT, reply_markup=get_start_keyboard())
-    await add_and_get_user(message)
-    # todo check args and link
+
+    # print(command)
+    # print(command.command)
+    # print(command.text)
+    # print(command.args)
 
 
 @router.callback_query(MainMenuFilter())
@@ -197,7 +213,7 @@ async def handle_fill_up_balance_query(call: CallbackQuery):
 @router.callback_query(F.data == ButtonsStorage.PROMO_CODE.callback)
 async def handle_promo_code_query(call: CallbackQuery, state: FSMContext):
     await state.set_state(states.PROMO_CODE_EXPECTING_STATE)
-    await state.set_data({'message': call.message})
+    await state.set_data({"message": call.message})
     await call.message.edit_text(
         TextsStorage.INPUT_PROMO_CODE, reply_markup=get_cancel_state_keyboard()
     )
@@ -207,11 +223,9 @@ async def handle_promo_code_query(call: CallbackQuery, state: FSMContext):
 async def handle_message(message: Message, state: FSMContext):
 
     state_data = await state.get_data()
-    msg_to_edit: Message = state_data['message']
+    msg_to_edit: Message = state_data["message"]
     await state.clear()
-    await msg_to_edit.edit_reply_markup(
-        reply_markup=None
-    )
+    await msg_to_edit.edit_reply_markup(reply_markup=None)
 
     try:
         promo_code = await db_manager.add_promo_code_usage(
@@ -231,4 +245,13 @@ async def handle_cancel_state_query(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await call.message.edit_text(
         TextsStorage.MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard()
+    )
+
+
+@router.callback_query(F.data == ButtonsStorage.INVITATION_LINK.callback)
+async def handle_invitation_link_query(call: CallbackQuery):
+    user_link = generate_invitation_link(call.from_user.id)
+    await call.message.edit_text(
+        TextsStorage.INVITATION_LINK_INFO_MSG.format(user_link),
+        reply_markup=get_back_to_main_menu_keyboard(),
     )

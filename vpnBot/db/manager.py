@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy import select, null
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
 
-from vpnBot.config import DATABASE_URL
+from vpnBot import config
 from vpnBot.db.tables import *
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
 
@@ -11,6 +11,7 @@ from vpnBot.exceptions.clients import *
 from vpnBot.exceptions.promo_codes import *
 from vpnBot.static.common import *
 from vpnBot.utils.date_util import get_next_date
+from vpnBot.wireguard_tools.wireguard_client import WireguardClient
 
 
 class EngineManager:
@@ -31,7 +32,7 @@ class DBManager:
         asyncio.run(self._init())
 
     async def _init(self):
-        async with EngineManager(DATABASE_URL) as engine:
+        async with EngineManager(config.DATABASE_URL) as engine:
             self.session_maker = async_sessionmaker(engine, expire_on_commit=False)
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
@@ -167,8 +168,17 @@ class DBManager:
                 )
                 session.add(new_client)
                 await session.flush()
-
                 ips.client_id = new_client.id
+
+                wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
+                wg_client = WireguardClient(
+                    name=f"{user_id}_{new_device_num}",
+                    ipv4=ips.ipv4,
+                    ipv6=ips.ipv6,
+                    keys=keys.get_as_wg_keys(),
+                    endpoint=wg_config.endpoint,
+                )
+                await wg_config.add_client(wg_client)
 
                 await session.commit()
                 return new_client
@@ -184,14 +194,33 @@ class DBManager:
             result = await session.execute(query)
             return result.scalars().first()
 
+    async def _get_wg_client_by_client(self, client: Client):
+        ips = await self.get_ips_by_client_id(client.id)
+        wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
+        keys = await self.get_keys_by_client_id(client.id)
+        wg_client = WireguardClient(
+            name=f"{client.user_id}_{client.device_num}",
+            ipv4=ips.ipv4,
+            ipv6=ips.ipv6,
+            keys=keys.get_as_wg_keys(),
+            endpoint=wg_config.endpoint,
+        )
+        return wg_client
+
     async def delete_client(self, client: Client) -> None:
         ips = await self.get_ips_by_client_id(client.id)
         keys = await self.get_keys_by_client_id(client.id)
         async with self.session_maker() as session:
             async with session.begin():
+
+                wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
+                wg_client = await self._get_wg_client_by_client(client)
+
                 ips.client_id = None
                 await session.delete(client)
                 await session.delete(keys)
+
+                await wg_config.remove_client(wg_client)
             await session.commit()
 
     async def get_user_transactions(self, user_id) -> list[Transaction]:
@@ -201,7 +230,9 @@ class DBManager:
                 result = await session.execute(query)
                 return result.scalars().all()
 
-    async def add_promo_code_usage(self, promo_code_text: str, user_id: int) -> PromoCode:
+    async def add_promo_code_usage(
+        self, promo_code_text: str, user_id: int
+    ) -> PromoCode:
         async with self.session_maker() as session:
             async with session.begin():
 

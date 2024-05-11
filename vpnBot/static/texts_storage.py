@@ -1,6 +1,6 @@
 from abc import ABC
 
-from vpnBot.static.common import PRICE
+from vpnBot.static.common import PRICE, INVITATION_BONUS
 
 
 class TextsStorage(ABC):
@@ -81,3 +81,8 @@ class TextsStorage(ABC):
     NO_SUCH_PROMO_CODE_ERROR_MSG = "Похоже, такого промокода не существует."
 
     PROMO_CODE_INACTIVE_ERROR_MSG = "Данный промокод более недействителен."
+
+    INVITATION_LINK_INFO_MSG = (
+        f"Вы можете пригласить друзей и получить {INVITATION_BONUS}₽ за каждого нового пользователя, "
+        "перешедшего по вашей пригласительной ссылке: {}"
+    )

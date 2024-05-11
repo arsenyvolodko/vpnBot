@@ -18,23 +18,22 @@ class WireguardClient:
         self.keys = keys
         self.endpoint = endpoint
 
-    def gen_qr_config(self, dir_path: Path) -> Path:
-        file_path = self._gen_path(dir_path, f"{self.name}.png")
+    async def gen_qr_config(self, dir_path: Path) -> Path:
+        file_path = await self._gen_path(dir_path, f"{self.name}.png")
         config_data = self._get_config()
-        print(config_data)
         img = qrcode.make(config_data)
         img.save(str(file_path))
         return file_path
 
-    def gen_text_config(self, dir_path: Path) -> Path:
-        file_path = self._gen_path(dir_path, f"{self.name}.conf")
+    async def gen_text_config(self, dir_path: Path) -> Path:
+        file_path = await self._gen_path(dir_path, f"{self.name}.conf")
         with file_path.open("w") as file:
             config_data = self._get_config()
             file.write(config_data)
         return file_path
 
     @staticmethod
-    def _gen_path(path: Path, file_name: str) -> Path:
+    async def _gen_path(path: Path, file_name: str) -> Path:
         path.mkdir(parents=True, exist_ok=True)
         file_path = path / file_name
 

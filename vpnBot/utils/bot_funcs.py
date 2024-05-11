@@ -2,7 +2,7 @@ from aiogram import types
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from vpnBot import config
-from vpnBot.db.manager import db_manager
+from vpnBot.db import db_manager
 from vpnBot.db.tables import User, Transaction, Client
 from vpnBot.enums import TransactionCommentEnum
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
@@ -18,22 +18,6 @@ from vpnBot.static.common import DEVICES_MAX_AMOUNT, PRICE
 from vpnBot.static.texts_storage import TextsStorage
 from vpnBot.utils.files import delete_file
 from vpnBot.wireguard_tools.wireguard_client import WireguardClient
-
-
-async def add_and_get_user(message: types.Message):
-    # user = await db_manager.get_user_by_id(message.from_user.id)
-    user = await db_manager.get_record(User, message.from_user.id)
-    if not user:
-        new_user = User(id=message.from_user.id, username=message.from_user.username)
-        user = await db_manager.add_record(new_user)
-        new_record = Transaction(
-            user_id=user.id,
-            value=PRICE,
-            operation_type=OperationTypeEnum.INCREASE,
-            comment=TransactionCommentEnum.START_BALANCE,
-        )
-        await db_manager.add_record(new_record)
-    return user
 
 
 async def get_user_balance(user_id: int):
@@ -57,12 +41,13 @@ async def _check_devices_and_balance(devices_num: int, user_balance: int):
 async def get_wg_client_by_client(client: Client) -> WireguardClient:
     wg_keys = (await db_manager.get_keys_by_client_id(client.id)).get_as_wg_keys()
     ips = await db_manager.get_ips_by_client_id(client.id)
+    wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
     wg_client = WireguardClient(
         name=f"{client.user_id}_{client.device_num}",
         ipv4=ips.ipv4,
         ipv6=ips.ipv6,
         keys=wg_keys,
-        endpoint=config.SERVER_ENDPOINT,
+        endpoint=wg_config.endpoint,
     )
     return wg_client
 
@@ -70,8 +55,8 @@ async def get_wg_client_by_client(client: Client) -> WireguardClient:
 async def send_config_and_qr(
     wg_client: WireguardClient, call: CallbackQuery, device_num: int
 ):
-    qr_file = wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
-    config_file = wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
+    qr_file = await wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
+    config_file = await wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
     await call.message.delete()
 
     await call.bot.send_document(
@@ -103,3 +88,7 @@ async def process_transaction(transaction: Transaction):
     text += str(transaction.value) + "₽\n"
     text += f"Комментарий: {transaction.comment.value}"
     return text
+
+
+def generate_invitation_link(user_id: int):
+    return f"{config.BOT_TG_URL}?start={user_id}"
