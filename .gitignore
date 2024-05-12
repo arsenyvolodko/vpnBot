@@ -1,7 +1,6 @@
 __pycache__/
-poetry.lock
-.env
-vpnBot/wg_files/*.conf
-vpnBot/wg_files/client_files/*
-!vpnBot/wg_files/client_files/.gitkeep
+setup_utils/.env
+vpnBot/client_files/*
+!vpnBot/client_files/.gitkeep
 .DS_Store
+/wg_files/

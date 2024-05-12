@@ -1,6 +1,7 @@
 import asyncio
+import datetime
 
-from sqlalchemy import select, null
+from sqlalchemy import select, null, update
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
 
 from vpnBot import config
@@ -11,7 +12,7 @@ from vpnBot.exceptions.clients import *
 from vpnBot.exceptions.promo_codes import *
 from vpnBot.static.common import *
 from vpnBot.utils.date_util import get_next_date
-from vpnBot.wireguard_tools.wireguard_client import WireguardClient
+from wireguard_tools.wireguard_client import WireguardClient
 
 
 class EngineManager:
@@ -36,14 +37,6 @@ class DBManager:
             self.session_maker = async_sessionmaker(engine, expire_on_commit=False)
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
-
-    # async def get_user_by_id(self, user_id: int) -> User | None:
-    #     async with self.session_maker() as session:
-    #         # noinspection PyTypeChecker
-    #         query = select(User).where(User.id == user_id)
-    #         result = await session.execute(query)
-    #         user = result.scalars().first()
-    #         return user
 
     async def add_record(self, new_record) -> Base:
         async with self.session_maker() as session:
@@ -74,6 +67,7 @@ class DBManager:
             clients = result.scalars()
             return clients.all()
 
+    # noinspection PyTypeChecker
     async def get_ips_by_client_id(self, client_id: int) -> Ips | None:
         async with self.session_maker() as session:
             query = select(Ips).where(Ips.client_id == client_id)
@@ -81,6 +75,7 @@ class DBManager:
             ips = result.scalars()  # todo maybe inline
             return ips.first()
 
+    # noinspection PyTypeChecker
     async def get_keys_by_client_id(self, client_id: int) -> Keys | None:
         async with self.session_maker() as session:
             query = select(Keys).join(Client).where(Client.id == client_id)
@@ -88,8 +83,8 @@ class DBManager:
             keys = result.scalars()  # todo maybe inline
             return keys.first()
 
-    async def add_transaction(
-        self,
+    @staticmethod
+    async def _add_transaction_util(
         session,
         user_id: int,
         value: int,
@@ -102,8 +97,16 @@ class DBManager:
 
         session.add(new_transaction)
 
-    async def update_balance(
-        self,
+    async def update_balance(self, **kwargs) -> bool:
+        if kwargs.get('session', None):
+            return await self._update_balance_util(**kwargs)
+
+        async with self.session_maker() as session:
+            async with session.begin():
+                return await self._update_balance_util(session, **kwargs)
+
+    @staticmethod
+    async def _update_balance_util(
         session,
         user_id: int,
         value: int,
@@ -121,7 +124,7 @@ class DBManager:
             user.balance -= value
         else:
             user.balance += value
-        await self.add_transaction(
+        await DBManager._add_transaction_util(
             session, user_id=user_id, value=value, op_type=op_type, comment=comment
         )
         return True
@@ -140,11 +143,11 @@ class DBManager:
                 new_device_num = devices[-1].device_num + 1 if devices else 1
 
                 balance_updated = await self.update_balance(
-                    session,
-                    user_id,
+                    user_id=user_id,
                     value=PRICE,
                     op_type=OperationTypeEnum.DECREASE,
                     comment=TransactionCommentEnum.ADD_DEVICE,
+                    session=session,
                 )
                 if not balance_updated:
                     raise NotEnoughMoneyError()
@@ -236,6 +239,7 @@ class DBManager:
         async with self.session_maker() as session:
             async with session.begin():
 
+                # noinspection PyTypeChecker
                 promo_code_query = select(PromoCode).where(
                     PromoCode.name == promo_code_text
                 )
@@ -266,15 +270,45 @@ class DBManager:
                 session.add(new_promo_code_usage)
 
                 await self.update_balance(
-                    session,
-                    user_id,
-                    promo_code.value,
-                    OperationTypeEnum.INCREASE,
+                    user_id=user_id,
+                    value=promo_code.value,
+                    op_type=OperationTypeEnum.INCREASE,
                     comment=TransactionCommentEnum.PROMO_CODE,
+                    session=session,
                 )
 
                 await session.commit()
                 return promo_code
+
+    async def get_clients_by_end_date(self, end_date: datetime.date, activity_status: bool) -> list[Client]:
+        async with self.session_maker() as session:
+            async with session.begin():
+                query = select(Client).where(
+                    Client.end_date == end_date,
+                    Client.active == activity_status
+                )
+                result = await session.execute(query)
+                return result.scalars().all()
+
+    async def renew_subscription(self, client_id: int, user_id: int,  end_date: datetime.date):
+        async with self.session_maker() as session:
+            async with session.begin():
+                updated = self.update_balance(
+                    session=session,
+                    user_id=user_id,
+                    value=PRICE,
+                    op_type=OperationTypeEnum.DECREASE,
+                    comment=TransactionCommentEnum.SUBSCRIPTION
+                )
+                if not updated:
+                    query = update(Client).values(active=False).where(Client.id == client_id)
+                    await session.execute(query)
+                    await session.commit()
+                    raise NotEnoughMoneyError()
+                # noinspection PyTypeChecker
+                query = update(Client).values(end_date=end_date).where(Client.id == client_id)
+                await session.execute(query)
+                await session.commit()
 
 
 db_manager = DBManager()

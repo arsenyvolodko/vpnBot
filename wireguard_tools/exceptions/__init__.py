@@ -1,0 +1,3 @@
+from wireguard_tools.exceptions.client_not_found_error import ClientNotFoundError
+from wireguard_tools.exceptions.incompatible_keys_error import IncompatibleKeysError
+from wireguard_tools.exceptions.sync_config_error import SyncConfigError

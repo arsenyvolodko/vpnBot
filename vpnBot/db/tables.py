@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from vpnBot.enums import *
 from vpnBot.static.common import PRICE
-from vpnBot.wireguard_tools.wireguard_keys import WireguardKeys
+from wireguard_tools.wireguard_keys import WireguardKeys
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -26,6 +26,8 @@ class User(Base):
     balance: Mapped[int] = mapped_column(nullable=False, default=PRICE)
 
     join_date = Column(Date, nullable=False, default=datetime.now().date())
+
+    inviter_id = Column(BigInteger, ForeignKey('user.id'), nullable=True, default=None)
 
 
 class Ips(Base):
@@ -73,7 +75,7 @@ class Client(Base):
 
     device_num: Mapped[int] = mapped_column(nullable=False)
 
-    active: Mapped[bool] = mapped_column(nullable=False, default=1)
+    active: Mapped[bool] = mapped_column(nullable=False, default=True)
 
     end_date = Column(Date, nullable=False)
 

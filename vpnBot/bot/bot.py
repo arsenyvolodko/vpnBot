@@ -1,7 +1,7 @@
 import datetime
 
 from aiogram import Dispatcher, Router, F
-from aiogram.filters import CommandStart, CommandObject
+from aiogram.filters import CommandStart, CommandObject, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, CallbackQuery, Message
 
@@ -21,6 +21,7 @@ from vpnBot.utils.bot_funcs import (
     send_config_and_qr,
     process_transaction,
     generate_invitation_link,
+    check_invitation,
 )
 from vpnBot.utils.files import delete_file
 from vpnBot.utils.filters import MainMenuFilter
@@ -33,7 +34,11 @@ dp.include_router(router)
 @dp.message(CommandStart())
 async def welcome_message(message: Message, command: CommandObject):
     user = await db_manager.get_record(User, message.from_user.id)
+
     if not user:
+        if inviter_id := command.args:
+            await check_invitation(message, inviter_id)
+
         new_user = User(id=message.from_user.id, username=message.from_user.username)
         user = await db_manager.add_record(new_user)
         new_transaction = Transaction(
@@ -46,14 +51,18 @@ async def welcome_message(message: Message, command: CommandObject):
 
     await message.answer(TextsStorage.START_TEXT, reply_markup=get_start_keyboard())
 
-    # print(command)
-    # print(command.command)
-    # print(command.text)
-    # print(command.args)
+
+@router.message(Command("menu"))
+async def handle_main_menu_callback(message: Message):
+    await message.bot.send_message(
+        message.from_user.id,
+        text=TextsStorage.MAIN_MENU_TEXT,
+        reply_markup=get_main_menu_keyboard(),
+    )
 
 
 @router.callback_query(MainMenuFilter())
-async def handle_callback(call: CallbackQuery):
+async def handle_main_menu_callback(call: CallbackQuery):
     await call.message.edit_text(
         text=TextsStorage.MAIN_MENU_TEXT,
         reply_markup=get_main_menu_keyboard(),

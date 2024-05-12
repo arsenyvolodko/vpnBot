@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "vpnbot"
 version = "0.1.0"
-description = ""
-authors = ["arsenyvolodko <arvolodko@gmail.com>"]
+description = "tg-bot for providing wireguard vpn keys"
+authors = ["Volodko Arseny <arvolodko@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"

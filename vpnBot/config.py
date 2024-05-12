@@ -4,16 +4,18 @@ from typing import Dict
 
 from dotenv import load_dotenv
 
-from vpnBot.wireguard_tools.wireguard_config import WireguardConfig
+from wireguard_tools.wireguard_config import WireguardConfig
 
-load_dotenv()
+
+WORK_DIR = Path(__file__).parent.parent
+
+load_dotenv(WORK_DIR / "setup_utils/.env")
 
 DEBUG = os.environ.get('DEBUG') == 'True'
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-WORK_DIR = Path(__file__).parent
-PATH_TO_CLIENTS_FILES = WORK_DIR / 'wg_files/client_files/'
+PATH_TO_CLIENTS_FILES = WORK_DIR / 'vpnBot/client_files/'
 
 if DEBUG:
     BOT_TOKEN = os.environ.get("DEBUG_BOT_TOKEN")

@@ -1,4 +1,5 @@
-from aiogram import types
+from typing import Any
+
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from vpnBot import config
@@ -6,36 +7,19 @@ from vpnBot.db import db_manager
 from vpnBot.db.tables import User, Transaction, Client
 from vpnBot.enums import TransactionCommentEnum
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
-from vpnBot.exceptions.clients import *
-from vpnBot.exceptions.clients.client_base_error import ClientBaseError
-from vpnBot.exceptions.promo_codes import *
-from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import (
     get_back_to_main_menu_keyboard,
     get_main_menu_keyboard,
 )
-from vpnBot.static.common import DEVICES_MAX_AMOUNT, PRICE
+from vpnBot.static.common import INVITATION_BONUS
 from vpnBot.static.texts_storage import TextsStorage
 from vpnBot.utils.files import delete_file
-from vpnBot.wireguard_tools.wireguard_client import WireguardClient
+from wireguard_tools.wireguard_client import WireguardClient
 
 
 async def get_user_balance(user_id: int):
-    # user = await db_manager.get_user_by_id(user_id)
     user = await db_manager.get_record(User, user_id)
     return user.balance
-
-
-async def get_user_devices_amount(user_id: int):
-    devices = await db_manager.get_user_devices(user_id)
-    return len(devices)
-
-
-async def _check_devices_and_balance(devices_num: int, user_balance: int):
-    if devices_num == DEVICES_MAX_AMOUNT:
-        raise DevicesLimitError()
-    if user_balance < PRICE:
-        raise NotEnoughMoneyError()
 
 
 async def get_wg_client_by_client(client: Client) -> WireguardClient:
@@ -54,7 +38,7 @@ async def get_wg_client_by_client(client: Client) -> WireguardClient:
 
 async def send_config_and_qr(
     wg_client: WireguardClient, call: CallbackQuery, device_num: int
-):
+) -> None:
     qr_file = await wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
     config_file = await wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
     await call.message.delete()
@@ -76,7 +60,7 @@ async def send_config_and_qr(
     await delete_file(config_file)
 
 
-async def process_transaction(transaction: Transaction):
+async def process_transaction(transaction: Transaction) -> str:
     time = transaction.operation_time.strftime("%d.%m.%Y, %H:%M")
     text = f"{time}\n"
     text += "Операция: "
@@ -90,5 +74,28 @@ async def process_transaction(transaction: Transaction):
     return text
 
 
-def generate_invitation_link(user_id: int):
+def generate_invitation_link(user_id: int) -> str:
     return f"{config.BOT_TG_URL}?start={user_id}"
+
+
+async def check_invitation(message: Message, inviter_id: Any) -> None:
+    try:
+        inviter_id = int(inviter_id)
+        inviter = await db_manager.get_record(User, inviter_id)
+        if not inviter or message.from_user.id == inviter.id:
+            return
+
+        await db_manager.update_balance(
+            user_id=inviter_id,
+            value=INVITATION_BONUS,
+            op_type=OperationTypeEnum.INCREASE,
+            comment=TransactionCommentEnum.INVITATION,
+        )
+
+        await message.bot.send_message(
+            chat_id=inviter_id,
+            text=TextsStorage.SUCCESSFUL_INVITATION_INFO_MSG,
+            reply_markup=get_back_to_main_menu_keyboard(),
+        )
+    except ValueError:
+        return
