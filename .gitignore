@@ -1,6 +1,4 @@
+.idea/
 __pycache__/
-setup_utils/.env
-vpnBot/client_files/*
-!vpnBot/client_files/.gitkeep
-.DS_Store
-/wg_files/
+.env
+wg_files/

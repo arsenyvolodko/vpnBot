@@ -22,5 +22,3 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH='/app'
 
 RUN chmod +x ./setup_utils/run.sh
-
-CMD ["./setup_utils/run.sh"]

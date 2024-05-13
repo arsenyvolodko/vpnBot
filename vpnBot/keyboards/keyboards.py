@@ -5,8 +5,8 @@ from vpnBot.db.tables import Client
 from vpnBot.keyboards.buttons_storage import ButtonsStorage
 from vpnBot.keyboards.fabrics.devices_callback_factory import DevicesCallbackFactory
 from vpnBot.keyboards.fabrics.fill_up_balance_factory import FillUpBalanceFactory
-from vpnBot.static.common import FILLING_UP_VALUES
-from vpnBot.static.texts_storage import TextsStorage
+from vpnBot.consts.common import FILLING_UP_VALUES
+from vpnBot.consts.texts_storage import TextsStorage
 
 
 def get_start_keyboard() -> types.InlineKeyboardMarkup:

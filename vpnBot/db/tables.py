@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from vpnBot.enums import *
-from vpnBot.static.common import PRICE
+from vpnBot.consts.common import PRICE
 from wireguard_tools.wireguard_keys import WireguardKeys
 
 

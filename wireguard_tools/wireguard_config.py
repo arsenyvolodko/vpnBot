@@ -4,12 +4,14 @@ from pathlib import Path
 from wireguard_tools.exceptions import ClientNotFoundError
 from wireguard_tools.exceptions import SyncConfigError
 from wireguard_tools.wireguard_client import WireguardClient
+from wireguard_tools.wireguard_keys import WireguardKeys
 
 
 class WireguardConfig:
 
     def __init__(self):
         self.interface: str | None = None
+        self.private_key: str | None = None
         self.public_key: str | None = None
         self.endpoint: str | None = None
         self.config_path: Path | None = None
@@ -18,15 +20,16 @@ class WireguardConfig:
     def set_config(
         self,
         interface: str,
-        public_key: str,
+        private_key: str,
         endpoint: str,
         config_path: Path,
         debug: bool = False,
     ):
-        if not all((interface, public_key, endpoint, config_path)):
+        if not all((interface, private_key, endpoint, config_path)):
             raise ValueError("Config params cannot be None.")
         self.interface = interface
-        self.public_key = public_key
+        self.private_key = private_key
+        self.public_key = WireguardKeys.generate_public_key(private_key)
         self.endpoint = endpoint
         self.config_path = config_path
         self.debug = debug
@@ -62,7 +65,7 @@ class WireguardConfig:
         new_data = ""
         new_data += f"### Client {client.name}\n"
         new_data += "[Peer]\n"
-        new_data += f"PublicKey = {client.keys.private_key}\n"
+        new_data += f"PublicKey = {client.keys.public_key}\n"
         allowed_ips = f"{client.ipv4}, {client.ipv6}"
         new_data += f"AllowedIPs = {allowed_ips}\n"
         new_data += "\n"

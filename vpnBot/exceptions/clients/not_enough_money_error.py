@@ -1,5 +1,5 @@
 from vpnBot.exceptions.clients.client_base_error import ClientBaseError
-from vpnBot.static.texts_storage import TextsStorage
+from vpnBot.consts.texts_storage import TextsStorage
 
 
 class NotEnoughMoneyError(ClientBaseError):

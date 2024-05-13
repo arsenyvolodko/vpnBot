@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    command: bash ./setup_utils/run.sh
+    volumes:
+      - ${WG_CONFIGS_PATH}:/app/wg_files/
+    env_file:
+      - ./.env
+#    depends_on:
+#      - redis
+#    networks:
+#      - app-net
+
+#  celery_worker:
+#    build: .
+#    command: celery -A vpnBot.bot.celery_app worker --loglevel=info
+#    volumes:
+#      - .:/app
+#    depends_on:
+#      - redis
+#    environment:
+#      - CELERY_BROKER_URL=redis://redis:6379/0
+#      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+#    networks:
+#      - app-net
+#
+#  redis:
+#    image: redis:latest
+#    networks:
+#      - app-net
+#
+#networks:
+#  app-net:
+#    driver: bridge

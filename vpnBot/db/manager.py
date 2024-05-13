@@ -10,7 +10,7 @@ from vpnBot.enums.operation_type_enum import OperationTypeEnum
 
 from vpnBot.exceptions.clients import *
 from vpnBot.exceptions.promo_codes import *
-from vpnBot.static.common import *
+from vpnBot.consts.common import *
 from vpnBot.utils.date_util import get_next_date
 from wireguard_tools.wireguard_client import WireguardClient
 
@@ -37,6 +37,10 @@ class DBManager:
             self.session_maker = async_sessionmaker(engine, expire_on_commit=False)
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
+
+    async def close(self):
+        async with self.session_maker() as session:
+            session.close()
 
     async def add_record(self, new_record) -> Base:
         async with self.session_maker() as session:
@@ -180,6 +184,7 @@ class DBManager:
                     ipv6=ips.ipv6,
                     keys=keys.get_as_wg_keys(),
                     endpoint=wg_config.endpoint,
+                    server_public_key=wg_config.public_key
                 )
                 await wg_config.add_client(wg_client)
 
@@ -207,6 +212,7 @@ class DBManager:
             ipv6=ips.ipv6,
             keys=keys.get_as_wg_keys(),
             endpoint=wg_config.endpoint,
+            server_public_key=wg_config.public_key
         )
         return wg_client
 
@@ -284,7 +290,7 @@ class DBManager:
         async with self.session_maker() as session:
             async with session.begin():
                 query = select(Client).where(
-                    Client.end_date == end_date,
+                    Client.end_date <= end_date,
                     Client.active == activity_status
                 )
                 result = await session.execute(query)
@@ -293,12 +299,12 @@ class DBManager:
     async def renew_subscription(self, client_id: int, user_id: int,  end_date: datetime.date):
         async with self.session_maker() as session:
             async with session.begin():
-                updated = self.update_balance(
-                    session=session,
+                updated = await self.update_balance(
                     user_id=user_id,
                     value=PRICE,
                     op_type=OperationTypeEnum.DECREASE,
-                    comment=TransactionCommentEnum.SUBSCRIPTION
+                    comment=TransactionCommentEnum.RENEW_SUBSCRIPTION,
+                    session=session
                 )
                 if not updated:
                     query = update(Client).values(active=False).where(Client.id == client_id)

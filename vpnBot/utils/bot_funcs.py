@@ -11,8 +11,8 @@ from vpnBot.keyboards.keyboards import (
     get_back_to_main_menu_keyboard,
     get_main_menu_keyboard,
 )
-from vpnBot.static.common import INVITATION_BONUS
-from vpnBot.static.texts_storage import TextsStorage
+from vpnBot.consts.common import INVITATION_BONUS
+from vpnBot.consts.texts_storage import TextsStorage
 from vpnBot.utils.files import delete_file
 from wireguard_tools.wireguard_client import WireguardClient
 
@@ -32,6 +32,7 @@ async def get_wg_client_by_client(client: Client) -> WireguardClient:
         ipv6=ips.ipv6,
         keys=wg_keys,
         endpoint=wg_config.endpoint,
+        server_public_key=wg_config.public_key
     )
     return wg_client
 

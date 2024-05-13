@@ -1,5 +1,5 @@
 from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
-from vpnBot.static.texts_storage import TextsStorage
+from vpnBot.consts.texts_storage import TextsStorage
 
 
 class PromoCodeInactiveError(PromoCodeBaseError):

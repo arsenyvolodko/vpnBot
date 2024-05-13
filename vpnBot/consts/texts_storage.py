@@ -1,6 +1,6 @@
 from abc import ABC
 
-from vpnBot.static.common import PRICE, INVITATION_BONUS
+from vpnBot.consts.common import PRICE, INVITATION_BONUS
 
 
 class TextsStorage(ABC):

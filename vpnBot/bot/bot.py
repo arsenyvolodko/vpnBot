@@ -12,9 +12,9 @@ from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum
 from vpnBot.exceptions.clients.client_base_error import ClientBaseError
 from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import *
-from vpnBot.static import states
-from vpnBot.static.common import *
-from vpnBot.static.texts_storage import *
+from vpnBot.consts import states
+from vpnBot.consts.common import *
+from vpnBot.consts.texts_storage import *
 from vpnBot.utils.bot_funcs import (
     get_user_balance,
     get_wg_client_by_client,
@@ -103,9 +103,9 @@ async def add_device_confirmed(call: CallbackQuery):
         return
     except ClientBaseError as e:
         text = e.message
-    except Exception:
-        text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
-
+    # except Exception:
+    #     text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+    # text = 'beda'
     await call.message.edit_text(
         text=text, reply_markup=get_back_to_main_menu_keyboard()
     )
@@ -198,6 +198,8 @@ async def handle_get_transactions_query(call: CallbackQuery):
     with open(file_path, "w") as file:
         file.write(text)
         file.close()
+
+    await call.message.delete()
 
     await call.bot.send_document(
         chat_id=call.from_user.id,
