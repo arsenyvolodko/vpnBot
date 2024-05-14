@@ -103,9 +103,8 @@ async def add_device_confirmed(call: CallbackQuery):
         return
     except ClientBaseError as e:
         text = e.message
-    # except Exception:
-    #     text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
-    # text = 'beda'
+    except Exception:
+        text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
     await call.message.edit_text(
         text=text, reply_markup=get_back_to_main_menu_keyboard()
     )
@@ -166,12 +165,40 @@ async def handle_specific_device_query(
         text=TextsStorage.SPECIFIC_DEVICE_INFO_TEXT.format(
             device_num, status, client.end_date.strftime("%d.%m.%Y")
         ),
-        reply_markup=get_specific_device_keyboard(device_num),
+        reply_markup=get_specific_device_keyboard(device_num, client.active),
+    )
+
+
+# noinspection PyTypeChecker
+@router.callback_query(
+    DevicesCallbackFactory.filter(
+        F.callback == ButtonsStorage.RESUME_DEVICE_SUBSCRIPTION.callback
+    )
+)
+async def handle_resume_device_subscription_query(
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
+):
+    device_num = callback_data.device_num
+    client = await db_manager.get_clint_by_user_id_and_device_num(
+        call.from_user.id, device_num
+    )
+    if not client.active:
+        try:
+            await db_manager.resume_device_subscription(client.id, call.from_user.id)
+            text = TextsStorage.DEVICE_SUBSCRIPTION_SUCCESSFULLY_RESUMED
+        except ClientBaseError as e:
+            text = e.message
+        except Exception:
+            text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+    else:
+        text = TextsStorage.DEVICE_SUBSCRIPTION_ALREADY_ACTIVE
+    await call.message.edit_text(
+        text=text, reply_markup=get_back_to_main_menu_keyboard()
     )
 
 
 @router.callback_query(F.data == ButtonsStorage.FINANCE.callback)
-async def handle_finance_callback(call: CallbackQuery):
+async def handle_finance_callback_query(call: CallbackQuery):
     user_id = call.from_user.id
     user = await db_manager.get_record(User, user_id)
     await call.message.edit_text(
@@ -265,4 +292,32 @@ async def handle_invitation_link_query(call: CallbackQuery):
     await call.message.edit_text(
         TextsStorage.INVITATION_LINK_INFO_MSG.format(user_link),
         reply_markup=get_back_to_main_menu_keyboard(),
+    )
+
+
+# noinspection PyTypeChecker
+@router.callback_query(
+    FillUpBalanceFactory.filter(
+        F.callback == ButtonsStorage.FILL_UP_BALANCE_VALUE.callback
+    )
+)
+async def handle_fill_up_balance_factory_query(
+    call: CallbackQuery, callback_data: FillUpBalanceFactory
+):
+    updated = await db_manager.update_balance(
+        user_id=call.from_user.id,
+        value=callback_data.value,
+        op_type=OperationTypeEnum.INCREASE,
+        comment=TransactionCommentEnum.FILL_UP_BALANCE,
+    )
+
+    text = (
+        TextsStorage.BALANCE_SUCCESSFULLY_FILLED_UP
+        if updated
+        else TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+    )
+
+    await call.message.answer(
+        text=text,
+        reply_markup=get_back_to_main_menu_keyboard()
     )

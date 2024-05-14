@@ -6,6 +6,7 @@ services:
     command: bash ./setup_utils/run.sh
     volumes:
       - ${WG_CONFIGS_PATH}:/app/wg_files/
+      -
     env_file:
       - ./.env
 #    depends_on:

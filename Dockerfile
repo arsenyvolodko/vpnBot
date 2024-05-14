@@ -22,3 +22,4 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH='/app'
 
 RUN chmod +x ./setup_utils/run.sh
+RUN chmod +x ./wireguard_tools/sync_config.sh

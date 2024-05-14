@@ -1,30 +1,18 @@
 import asyncio
-import datetime
 
 from sqlalchemy import select, null, update
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from vpnBot import config
+from vpnBot.db.engine_manager import EngineManager
 from vpnBot.db.tables import *
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
-
 from vpnBot.exceptions.clients import *
+from vpnBot.exceptions.clients.no_such_client_error import NoSuchClientError
 from vpnBot.exceptions.promo_codes import *
 from vpnBot.consts.common import *
 from vpnBot.utils.date_util import get_next_date
 from wireguard_tools.wireguard_client import WireguardClient
-
-
-class EngineManager:
-    def __init__(self, path: str) -> None:
-        self.path = path
-
-    async def __aenter__(self) -> AsyncEngine:
-        self.engine = create_async_engine(self.path, echo=True)
-        return self.engine
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.engine.dispose()
 
 
 class DBManager:
@@ -49,15 +37,14 @@ class DBManager:
                 await session.commit()
                 return new_record
 
-    async def get_record(self, model, record_id: int):
+    async def get_record(self, model: type[Base], record_id: int):
         async with self.session_maker() as session:
-            # noinspection PyTypeChecker
             query = select(model).where(model.id == record_id)
             result = await session.execute(query)
             record = result.scalars().first()
             return record
 
-    async def delete_record(self, record):
+    async def delete_record(self, record: Base):
         async with self.session_maker() as session:
             async with session.begin():
                 session.delete(record)
@@ -76,16 +63,14 @@ class DBManager:
         async with self.session_maker() as session:
             query = select(Ips).where(Ips.client_id == client_id)
             result = await session.execute(query)
-            ips = result.scalars()  # todo maybe inline
-            return ips.first()
+            return result.scalars().first()
 
     # noinspection PyTypeChecker
     async def get_keys_by_client_id(self, client_id: int) -> Keys | None:
         async with self.session_maker() as session:
             query = select(Keys).join(Client).where(Client.id == client_id)
             result = await session.execute(query)
-            keys = result.scalars()  # todo maybe inline
-            return keys.first()
+            return result.scalars().first()
 
     @staticmethod
     async def _add_transaction_util(
@@ -102,7 +87,7 @@ class DBManager:
         session.add(new_transaction)
 
     async def update_balance(self, **kwargs) -> bool:
-        if kwargs.get('session', None):
+        if kwargs.get("session", None):
             return await self._update_balance_util(**kwargs)
 
         async with self.session_maker() as session:
@@ -184,7 +169,7 @@ class DBManager:
                     ipv6=ips.ipv6,
                     keys=keys.get_as_wg_keys(),
                     endpoint=wg_config.endpoint,
-                    server_public_key=wg_config.public_key
+                    server_public_key=wg_config.public_key,
                 )
                 await wg_config.add_client(wg_client)
 
@@ -212,13 +197,15 @@ class DBManager:
             ipv6=ips.ipv6,
             keys=keys.get_as_wg_keys(),
             endpoint=wg_config.endpoint,
-            server_public_key=wg_config.public_key
+            server_public_key=wg_config.public_key,
         )
         return wg_client
 
     async def delete_client(self, client: Client) -> None:
         ips = await self.get_ips_by_client_id(client.id)
         keys = await self.get_keys_by_client_id(client.id)
+        if not keys or not ips:
+            return
         async with self.session_maker() as session:
             async with session.begin():
 
@@ -286,17 +273,20 @@ class DBManager:
                 await session.commit()
                 return promo_code
 
-    async def get_clients_by_end_date(self, end_date: datetime.date, activity_status: bool) -> list[Client]:
+    async def get_clients_by_end_date(
+        self, end_date: datetime.date, activity_status: bool
+    ) -> list[Client]:
         async with self.session_maker() as session:
             async with session.begin():
                 query = select(Client).where(
-                    Client.end_date <= end_date,
-                    Client.active == activity_status
+                    Client.end_date <= end_date, Client.active == activity_status
                 )
                 result = await session.execute(query)
                 return result.scalars().all()
 
-    async def renew_subscription(self, client_id: int, user_id: int,  end_date: datetime.date):
+    async def renew_subscription(
+        self, client_id: int, user_id: int, end_date: datetime.date
+    ):
         async with self.session_maker() as session:
             async with session.begin():
                 updated = await self.update_balance(
@@ -304,16 +294,59 @@ class DBManager:
                     value=PRICE,
                     op_type=OperationTypeEnum.DECREASE,
                     comment=TransactionCommentEnum.RENEW_SUBSCRIPTION,
-                    session=session
+                    session=session,
                 )
                 if not updated:
-                    query = update(Client).values(active=False).where(Client.id == client_id)
+                    query = (
+                        update(Client)
+                        .values(active=False)
+                        .where(Client.id == client_id)
+                    )
                     await session.execute(query)
                     await session.commit()
                     raise NotEnoughMoneyError()
                 # noinspection PyTypeChecker
-                query = update(Client).values(end_date=end_date).where(Client.id == client_id)
+                query = (
+                    update(Client)
+                    .values(end_date=end_date)
+                    .where(Client.id == client_id)
+                )
                 await session.execute(query)
+                await session.commit()
+
+    async def resume_device_subscription(self, client_id: int, user_id: int):
+        async with self.session_maker() as session:
+            async with session.begin():
+                client = await self.get_record(Client, client_id)
+                ips = await self.get_ips_by_client_id(client_id)
+                keys = await self.get_keys_by_client_id(client_id)
+                if not client:
+                    raise NoSuchClientError()
+
+                balance_updated = await self.update_balance(
+                    user_id=user_id,
+                    value=PRICE,
+                    op_type=OperationTypeEnum.DECREASE,
+                    comment=TransactionCommentEnum.RENEW_SUBSCRIPTION,
+                    session=session,
+                )
+                if not balance_updated:
+                    raise NotEnoughMoneyError()
+
+                client.active = True
+                client.end_date = get_next_date()
+
+                wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
+                wg_client = WireguardClient(
+                    name=f"{user_id}_{client.device_num}",
+                    ipv4=ips.ipv4,
+                    ipv6=ips.ipv6,
+                    keys=keys.get_as_wg_keys(),
+                    endpoint=wg_config.endpoint,
+                    server_public_key=wg_config.public_key,
+                )
+                await wg_config.add_client(wg_client)
+
                 await session.commit()
 
 

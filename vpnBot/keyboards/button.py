@@ -19,13 +19,9 @@ class Button:
     def callback(self):
         return self.name.lower() + self.callback_suffix
 
-    def get_button(self, *args, **kwargs) -> InlineKeyboardButton:
+    def get_button(self, **kwargs) -> InlineKeyboardButton:
         text = kwargs.get('text', self.txt)
         url = kwargs.get('url', None)
         if url:
             return InlineKeyboardButton(text=text, url=url)
-        callback = f"{self.callback}#{'#'.join(map(str, args))}" if args else self.callback
-        return InlineKeyboardButton(text=text, callback_data=callback)
-
-    def has_callback(self, received_callback: str):
-        return received_callback.startswith(self.callback)
+        return InlineKeyboardButton(text=text, callback_data=self.callback)

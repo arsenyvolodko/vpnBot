@@ -74,6 +74,10 @@ class TextsStorage(ABC):
         "Приносим извинения за доставленные неудобства."
     )
 
+    NO_SUCH_CLIENT_ERROR_MSG = (
+        "Похоже, такого устройства уже не существует."
+    )
+
     DEVICE_LIMIT_ERROR_MSG = "Вы можете добавить не более 3х устройств."
 
     ALREADY_USED_PROMO_CODE_ERROR_MSG = "Вы уже воспользовались данным промокодом."
@@ -104,4 +108,16 @@ class TextsStorage(ABC):
 
     INACTIVE_DEVICE_DELETED = (
         "Устройство №{} удалено, поскольку было неактивно в течение 2х месяцев."
+    )
+
+    DEVICE_SUBSCRIPTION_SUCCESSFULLY_RESUMED = (
+        "Подпика успешно возобновлена."
+    )
+
+    DEVICE_SUBSCRIPTION_ALREADY_ACTIVE = (
+        "Подписка на устройство уже активна."
+    )
+
+    BALANCE_SUCCESSFULLY_FILLED_UP = (
+        "Баланс успешно пополнен."
     )

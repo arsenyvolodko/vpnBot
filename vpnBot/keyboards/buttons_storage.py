@@ -4,33 +4,35 @@ from vpnBot.keyboards.button import Button
 
 
 class ButtonsTextStorage(ABC):
-    GO_TO_MAIN_MENU = 'Перейти в меню'
-    GO_BACK_TO_MAIN_MENU = 'Вернуться в меню'
+    GO_TO_MAIN_MENU = "Перейти в меню"
+    GO_BACK_TO_MAIN_MENU = "Вернуться в меню"
 
-    GO_BACK = 'Назад'
-    CANCEL_STATE = 'Отмена'
-    CONTINUE = 'Продолжить'
+    GO_BACK = "Назад"
+    CANCEL_STATE = "Отмена"
+    CONTINUE = "Продолжить"
 
-    WG_APP_ANDROID = 'Android'
-    WG_APP_IOS = 'IOS'
-    WG_APP_PC = 'PC'
+    WG_APP_ANDROID = "Android"
+    WG_APP_IOS = "IOS"
+    WG_APP_PC = "PC"
 
-    DEVICES = 'Устройства 📱'
-    FINANCE = 'Финансы 💳'
-    PROMO_CODE = 'Применить промокод'
-    INVITATION_LINK = 'Пригласительные ссылки'
+    DEVICES = "Устройства 📱"
+    FINANCE = "Финансы 💳"
+    PROMO_CODE = "Применить промокод"
+    INVITATION_LINK = "Пригласительные ссылки"
 
-    DEVICE = 'Устройство №{}'
-    ADD_DEVICE = 'Добавить устройство'
-    ADD_DEVICE_CONFIRMATION = 'Продолжить'
+    DEVICE = "Устройство №{}"
+    ADD_DEVICE = "Добавить устройство"
+    ADD_DEVICE_CONFIRMATION = "Продолжить"
 
-    GET_DEVICES_CONFIG_AND_QR = 'Получить конфиг и qr'
-    DELETE_DEVICE = 'Удалить устройство'
+    GET_DEVICES_CONFIG_AND_QR = "Получить конфиг и qr"
+    DELETE_DEVICE = "Удалить устройство"
 
-    GET_TRANSACTIONS_HISTORY = 'История транзакций'
-    FILL_UP_BALANCE = 'Пополнить баланс'
+    GET_TRANSACTIONS_HISTORY = "История транзакций"
+    FILL_UP_BALANCE = "Пополнить баланс"
 
-    FILL_UP_BALANCE_VALUE = ''
+    FILL_UP_BALANCE_VALUE = ""
+
+    RESUME_DEVICE_SUBSCRIPTION = "Возобновить подписку"
 
 
 class AutoNameButtonMeta(type):
@@ -72,3 +74,4 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
     FILL_UP_BALANCE = Button()
 
     FILL_UP_BALANCE_VALUE = Button()
+    RESUME_DEVICE_SUBSCRIPTION = Button()

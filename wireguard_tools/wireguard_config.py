@@ -15,6 +15,7 @@ class WireguardConfig:
         self.public_key: str | None = None
         self.endpoint: str | None = None
         self.config_path: Path | None = None
+        self.sync_config_file_path: Path | None = None
         self.debug: bool = False
 
     def set_config(
@@ -23,9 +24,12 @@ class WireguardConfig:
         private_key: str,
         endpoint: str,
         config_path: Path,
+        sync_config_file_path: Path,
         debug: bool = False,
     ):
-        if not all((interface, private_key, endpoint, config_path)):
+        if not all(
+            (interface, private_key, endpoint, config_path, sync_config_file_path)
+        ):
             raise ValueError("Config params cannot be None.")
         self.interface = interface
         self.private_key = private_key
@@ -73,7 +77,10 @@ class WireguardConfig:
 
     async def _sync_config(self):
         try:
-            cmd = f"wg syncconf {self.interface} {self.config_path}"
-            subprocess.run(cmd, shell=True)
+            subprocess.check_call(
+                f"{self.sync_config_file_path} %s %s"
+                % (self.interface, str(self.config_path)),
+                shell=True,
+            )
         except Exception as e:
             raise SyncConfigError(e)
