@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    command: bash ./setup_utils/run.sh
+    volumes:
+      - ${WG_CONFIGS_PATH}:/app/vpnBot/wg_files/
+    env_file:
+      - ./.env

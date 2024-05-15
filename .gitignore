@@ -1,9 +1,4 @@
-__pycache__/
-poetry.lock
-logs.txt
-.env
-some_dir/server.conf
-utils/send_msg_to_all_users.py
-client_files/
-.DS_Store
 .idea/
+__pycache__/
+.env
+wg_files/
