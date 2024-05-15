@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from vpnBot.db.tables import Client
+from vpnBot.keyboards.button import Button
 from vpnBot.keyboards.buttons_storage import ButtonsStorage
 from vpnBot.keyboards.fabrics.devices_callback_factory import DevicesCallbackFactory
 from vpnBot.keyboards.fabrics.fill_up_balance_factory import FillUpBalanceFactory
@@ -11,7 +12,14 @@ from vpnBot.consts.texts_storage import TextsStorage
 
 
 def _construct_keyboard(*args, **kwargs) -> InlineKeyboardMarkup:
-    inline_keyboard = [[button.get_button()] for button in args]
+    inline_keyboard = [
+        [
+            button.get_button()
+            if isinstance(button, Button)
+            else button
+        ]
+        for button in args
+    ]
     if kwargs.get("with_back_to_menu", None):
         inline_keyboard.append([ButtonsStorage.GO_BACK_TO_MAIN_MENU.get_button()])
     return types.InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
@@ -22,7 +30,7 @@ def get_start_keyboard() -> InlineKeyboardMarkup:
         ButtonsStorage.WG_APP_IOS.get_button(url=TextsStorage.WG_APP_IOS_LINK),
         ButtonsStorage.WG_APP_ANDROID.get_button(url=TextsStorage.WG_APP_ANDROID_LINK),
         ButtonsStorage.WG_APP_PC.get_button(url=TextsStorage.WG_APP_PC_LINK),
-        ButtonsStorage.GO_TO_MAIN_MENU.get_button(),
+        ButtonsStorage.GO_TO_MAIN_MENU,
     )
 
 
@@ -53,6 +61,26 @@ def get_add_device_confirmation_keyboard() -> InlineKeyboardMarkup:
         ButtonsStorage.ADD_DEVICE_CONFIRMATION.get_button(),
         ButtonsStorage.DEVICES.get_button(text=ButtonsStorage.GO_BACK.text),
     )
+
+
+def get_delete_device_confirmation_keyboard(device_num: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=ButtonsStorage.DELETE_DEVICE_CONFIRMATION.text,
+        callback_data=DevicesCallbackFactory(
+            callback=ButtonsStorage.DELETE_DEVICE_CONFIRMATION.callback,
+            device_num=device_num
+        )
+    )
+    builder.button(
+        text=ButtonsStorage.GO_BACK.text,
+        callback_data=DevicesCallbackFactory(
+            callback=ButtonsStorage.DEVICE.callback,
+            device_num=device_num
+        )
+    )
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def get_finance_callback() -> InlineKeyboardMarkup:

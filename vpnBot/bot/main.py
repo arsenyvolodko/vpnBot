@@ -8,9 +8,6 @@ from vpnBot.bot.bot import dp
 from vpnBot.config import BOT_TOKEN
 
 
-# logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-
-
 async def main() -> None:
     await dp.start_polling(bot)
 

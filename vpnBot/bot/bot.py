@@ -114,8 +114,21 @@ async def add_device_confirmed(call: CallbackQuery):
 @router.callback_query(
     DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DELETE_DEVICE.callback)
 )
+async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactory):
+    await call.message.edit_text(
+        text=TextsStorage.DELETE_DEVICE_CONFIRMATION_INFO,
+        reply_markup=get_delete_device_confirmation_keyboard(
+            callback_data.device_num
+        )
+    )
+
+
+# noinspection PyTypeChecker
+@router.callback_query(
+    DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DELETE_DEVICE_CONFIRMATION.callback)
+)
 async def handle_specific_device_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
     client = await db_manager.get_clint_by_user_id_and_device_num(
@@ -139,7 +152,7 @@ async def handle_specific_device_query(
     )
 )
 async def handle_get_device_config_and_qr_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
     client = await db_manager.get_clint_by_user_id_and_device_num(
@@ -154,7 +167,7 @@ async def handle_get_device_config_and_qr_query(
     DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DEVICE.callback)
 )
 async def handle_specific_device_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
     client = await db_manager.get_clint_by_user_id_and_device_num(
@@ -176,7 +189,7 @@ async def handle_specific_device_query(
     )
 )
 async def handle_resume_device_subscription_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
     client = await db_manager.get_clint_by_user_id_and_device_num(
@@ -242,7 +255,7 @@ async def handle_get_transactions_query(call: CallbackQuery):
 
 @router.callback_query(F.data == ButtonsStorage.FILL_UP_BALANCE.callback)
 async def handle_fill_up_balance_query(call: CallbackQuery):
-    await call.message.answer(
+    await call.message.edit_text(
         TextsStorage.CHOOSE_SUM_TO_FILL_UP_BALANCE,
         reply_markup=get_fill_up_balance_keyboard(),
     )
@@ -259,7 +272,6 @@ async def handle_promo_code_query(call: CallbackQuery, state: FSMContext):
 
 @router.message(states.PROMO_CODE_EXPECTING_STATE)
 async def handle_message(message: Message, state: FSMContext):
-
     state_data = await state.get_data()
     msg_to_edit: Message = state_data["message"]
     await state.clear()
@@ -302,7 +314,7 @@ async def handle_invitation_link_query(call: CallbackQuery):
     )
 )
 async def handle_fill_up_balance_factory_query(
-    call: CallbackQuery, callback_data: FillUpBalanceFactory
+        call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
     updated = await db_manager.update_balance(
         user_id=call.from_user.id,
@@ -317,7 +329,7 @@ async def handle_fill_up_balance_factory_query(
         else TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
     )
 
-    await call.message.answer(
+    await call.message.edit_text(
         text=text,
         reply_markup=get_back_to_main_menu_keyboard()
     )

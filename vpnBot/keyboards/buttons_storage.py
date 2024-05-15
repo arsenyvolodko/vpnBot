@@ -26,6 +26,7 @@ class ButtonsTextStorage(ABC):
 
     GET_DEVICES_CONFIG_AND_QR = "Получить конфиг и qr"
     DELETE_DEVICE = "Удалить устройство"
+    DELETE_DEVICE_CONFIRMATION = "Продолжить"
 
     GET_TRANSACTIONS_HISTORY = "История транзакций"
     FILL_UP_BALANCE = "Пополнить баланс"
@@ -69,6 +70,7 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
 
     GET_DEVICES_CONFIG_AND_QR = Button()
     DELETE_DEVICE = Button()
+    DELETE_DEVICE_CONFIRMATION = Button()
 
     GET_TRANSACTIONS_HISTORY = Button()
     FILL_UP_BALANCE = Button()

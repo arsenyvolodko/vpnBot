@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 from wireguard_tools.wireguard_config import WireguardConfig
 
-
-WORK_DIR = Path(__file__).parent.parent
+VPN_BOT_DIR = Path(__file__).parent
+WORK_DIR = VPN_BOT_DIR.parent
 
 load_dotenv(WORK_DIR / ".env")
 
@@ -18,10 +18,10 @@ BOT_TG_URL = os.environ.get("BOT_URL")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-PATH_TO_CLIENTS_FILES = WORK_DIR / 'vpnBot/tmp_client_files/'
+PATH_TO_CLIENTS_FILES = VPN_BOT_DIR / 'tmp_client_files/'
 SYNC_CONFIG_FILE_PATH = WORK_DIR / 'wireguard_tools/sync_config.sh'
 
-WG_CONFIGS_PATH = Path(os.environ.get('WG_CONFIGS_PATH'))
+WG_CONFIGS_PATH = VPN_BOT_DIR / 'wg_files/'
 _WG0_CONFIG_PATH = WG_CONFIGS_PATH / "wg0.conf"
 
 _wg0_config = WireguardConfig()

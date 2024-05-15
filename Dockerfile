@@ -23,3 +23,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN chmod +x ./setup_utils/run.sh
 RUN chmod +x ./wireguard_tools/sync_config.sh
+RUN mkdir ./tmp_client_files

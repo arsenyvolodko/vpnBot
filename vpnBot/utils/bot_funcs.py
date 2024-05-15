@@ -38,7 +38,7 @@ async def get_wg_client_by_client(client: Client) -> WireguardClient:
 
 
 async def send_config_and_qr(
-    wg_client: WireguardClient, call: CallbackQuery, device_num: int
+        wg_client: WireguardClient, call: CallbackQuery, device_num: int
 ) -> None:
     qr_file = await wg_client.gen_qr_config(config.PATH_TO_CLIENTS_FILES)
     config_file = await wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)

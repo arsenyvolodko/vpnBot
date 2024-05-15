@@ -28,7 +28,7 @@ async def handle_today_payments():
 
         try:
             await bot.send_message(client.user_id, result.format(client.device_num))
-        except Exception:  # todo change to specific
+        except Exception:  # todo change to specific when user blocked bot
             pass
 
 
@@ -43,7 +43,7 @@ async def handle_delete_clients():
             await bot.send_message(
                 chat_id=client.user_id, text=TextsStorage.INACTIVE_DEVICE_DELETED.format(client.id)
             )
-        except Exception:  # todo change to specific
+        except Exception:  # todo change to specific when user blocked bot
             pass
 
 
