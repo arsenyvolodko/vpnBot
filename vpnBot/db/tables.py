@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Column, ForeignKey, Date, DateTime
+from sqlalchemy import BigInteger, Column, ForeignKey, Date, DateTime, UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -85,8 +85,11 @@ class Client(Base):
 
     user = relationship("User", backref="clients")
     keys = relationship("Keys", back_populates="client", uselist=False)
-    # keys = relationship("Keys", back_populates="client", foreign_keys=[keys_id], uselist=False)
     ips = relationship("Ips", back_populates="client", uselist=False)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'device_num'),
+    )
 
 
 class Transaction(Base):

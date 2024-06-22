@@ -6,6 +6,7 @@ from vpnBot.keyboards.button import Button
 class ButtonsTextStorage(ABC):
     GO_TO_MAIN_MENU = "Перейти в меню"
     GO_BACK_TO_MAIN_MENU = "Вернуться в меню"
+    GO_TO_MAIN_MENU_FROM_START = "Перейти в меню"
 
     GO_BACK = "Назад"
     CANCEL_STATE = "Отмена"
@@ -24,7 +25,7 @@ class ButtonsTextStorage(ABC):
     ADD_DEVICE = "Добавить устройство"
     ADD_DEVICE_CONFIRMATION = "Продолжить"
 
-    GET_DEVICES_CONFIG_AND_QR = "Получить конфиг и qr"
+    GET_DEVICES_CONFIG_AND_QR = "Получить конфиг и qr + инструкция"
     DELETE_DEVICE = "Удалить устройство"
     DELETE_DEVICE_CONFIRMATION = "Продолжить"
 
@@ -50,6 +51,7 @@ class AutoNameButtonMeta(type):
 class ButtonsStorage(metaclass=AutoNameButtonMeta):
     GO_TO_MAIN_MENU = Button()
     GO_BACK_TO_MAIN_MENU = Button()
+    GO_TO_MAIN_MENU_FROM_START = Button()
     GO_BACK = Button()
 
     CANCEL_STATE = Button()

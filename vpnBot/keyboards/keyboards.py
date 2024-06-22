@@ -1,3 +1,5 @@
+import uuid
+
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -5,19 +7,17 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from vpnBot.db.tables import Client
 from vpnBot.keyboards.button import Button
 from vpnBot.keyboards.buttons_storage import ButtonsStorage
-from vpnBot.keyboards.fabrics.devices_callback_factory import DevicesCallbackFactory
-from vpnBot.keyboards.fabrics.fill_up_balance_factory import FillUpBalanceFactory
 from vpnBot.consts.common import FILLING_UP_VALUES
 from vpnBot.consts.texts_storage import TextsStorage
+from vpnBot.keyboards.factories import (
+    FillUpBalanceFactory,
+    DevicesCallbackFactory,
+)
 
 
 def _construct_keyboard(*args, **kwargs) -> InlineKeyboardMarkup:
     inline_keyboard = [
-        [
-            button.get_button()
-            if isinstance(button, Button)
-            else button
-        ]
+        [button.get_button() if isinstance(button, Button) else button]
         for button in args
     ]
     if kwargs.get("with_back_to_menu", None):
@@ -25,12 +25,16 @@ def _construct_keyboard(*args, **kwargs) -> InlineKeyboardMarkup:
     return types.InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-def get_start_keyboard() -> InlineKeyboardMarkup:
+def get_start_keyboard(from_start=False) -> InlineKeyboardMarkup:
     return _construct_keyboard(
         ButtonsStorage.WG_APP_IOS.get_button(url=TextsStorage.WG_APP_IOS_LINK),
         ButtonsStorage.WG_APP_ANDROID.get_button(url=TextsStorage.WG_APP_ANDROID_LINK),
         ButtonsStorage.WG_APP_PC.get_button(url=TextsStorage.WG_APP_PC_LINK),
-        ButtonsStorage.GO_TO_MAIN_MENU,
+        (
+            ButtonsStorage.GO_TO_MAIN_MENU_FROM_START
+            if from_start
+            else ButtonsStorage.GO_TO_MAIN_MENU
+        ),
     )
 
 
@@ -39,7 +43,7 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
         ButtonsStorage.DEVICES,
         ButtonsStorage.FINANCE,
         ButtonsStorage.PROMO_CODE,
-        ButtonsStorage.INVITATION_LINK,
+        # ButtonsStorage.INVITATION_LINK,
     )
 
 
@@ -69,15 +73,14 @@ def get_delete_device_confirmation_keyboard(device_num: int) -> InlineKeyboardMa
         text=ButtonsStorage.DELETE_DEVICE_CONFIRMATION.text,
         callback_data=DevicesCallbackFactory(
             callback=ButtonsStorage.DELETE_DEVICE_CONFIRMATION.callback,
-            device_num=device_num
-        )
+            device_num=device_num,
+        ),
     )
     builder.button(
         text=ButtonsStorage.GO_BACK.text,
         callback_data=DevicesCallbackFactory(
-            callback=ButtonsStorage.DEVICE.callback,
-            device_num=device_num
-        )
+            callback=ButtonsStorage.DEVICE.callback, device_num=device_num
+        ),
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -91,7 +94,9 @@ def get_finance_callback() -> InlineKeyboardMarkup:
     )
 
 
-def get_devices_keyboard(devices: list[Client], add_new_allowed: bool) -> InlineKeyboardMarkup:
+def get_devices_keyboard(
+    devices: list[Client], add_new_allowed: bool
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for device in devices:
         builder.button(
@@ -152,7 +157,6 @@ def get_fill_up_balance_keyboard() -> InlineKeyboardMarkup:
         builder.button(
             text=str(balance_value) + "₽",
             callback_data=FillUpBalanceFactory(
-                callback=ButtonsStorage.FILL_UP_BALANCE_VALUE.callback,
                 value=balance_value,
             ),
         )
