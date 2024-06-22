@@ -5,8 +5,8 @@ from vpnBot.bot.main import bot
 from vpnBot.db import db_manager
 from vpnBot.exceptions.clients import NotEnoughMoneyError
 from vpnBot.consts.texts_storage import TextsStorage
+from vpnBot.utils.bot_funcs import send_message_safety
 from vpnBot.utils.date_util import get_next_date
-from vpnBot.utils.send_message import send_message_safety
 
 
 async def handle_today_payments():
