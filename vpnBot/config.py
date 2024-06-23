@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict
 
 from dotenv import load_dotenv
+from yookassa import Configuration
 
 from wireguard_tools.wireguard_config import WireguardConfig
 
@@ -39,3 +40,6 @@ _wg0_config.set_config(
 WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {
     'wg0': _wg0_config
 }
+
+# YOOKASSA
+Configuration.configure_auth_token(os.environ.get("YOOKASSA_OAUTH_TOKEN"))

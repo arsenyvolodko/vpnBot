@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 
 from vpnBot.bot.main import bot
@@ -46,7 +45,3 @@ async def main():
         await handle_delete_clients()
     except Exception as e:
         print('exception:', type(e), e)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
