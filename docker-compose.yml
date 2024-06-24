@@ -1,10 +1,49 @@
-version: '3.8'
-
+version: '3'
 services:
   bot:
-    build: .
-    command: bash ./setup_utils/run.sh
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ${WG_CONFIGS_PATH}:/app/vpnBot/wg_files/
+      - ${SOURCE_WG_CONFIGS_PATH}:${WG_CONFIGS_PATH}
     env_file:
       - ./.env
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+    command: celery -A celery_config.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+    command: celery -A celery_config.celery_app beat --loglevel=info
+    depends_on:
+      - redis
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+    command: uvicorn server.main:app --host 0.0.0.0 --port ${FAST_API_PORT}
+    depends_on:
+      - redis
+    ports:
+      - "${FAST_API_PORT}:${FAST_API_PORT}"
+
+  redis:
+    image: redis:latest
+    restart: always
+    hostname: redis
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"

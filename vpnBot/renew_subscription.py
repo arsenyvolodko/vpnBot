@@ -1,10 +1,10 @@
-import asyncio
 import datetime
 
 from vpnBot.bot.main import bot
 from vpnBot.db import db_manager
 from vpnBot.exceptions.clients import NotEnoughMoneyError
 from vpnBot.consts.texts_storage import TextsStorage
+from vpnBot.utils.bot_funcs import send_message_safety
 from vpnBot.utils.date_util import get_next_date
 
 
@@ -26,10 +26,7 @@ async def handle_today_payments():
         except Exception:
             return
 
-        try:
-            await bot.send_message(client.user_id, result.format(client.device_num))
-        except Exception:  # todo change to specific when user blocked bot
-            pass
+        await send_message_safety(bot, client.user_id, result.format(client.device_num))
 
 
 async def handle_delete_clients():
@@ -39,12 +36,9 @@ async def handle_delete_clients():
     )
     for client in clients_to_delete:
         await db_manager.delete_client(client)
-        try:
-            await bot.send_message(
-                chat_id=client.user_id, text=TextsStorage.INACTIVE_DEVICE_DELETED.format(client.id)
-            )
-        except Exception:  # todo change to specific when user blocked bot
-            pass
+        await send_message_safety(
+            bot, client.user_id, TextsStorage.INACTIVE_DEVICE_DELETED.format(client.id)
+        )
 
 
 async def main():
@@ -52,8 +46,4 @@ async def main():
         await handle_today_payments()
         await handle_delete_clients()
     except Exception as e:
-        print('exception:', type(e), e)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        print("exception:", type(e), e)

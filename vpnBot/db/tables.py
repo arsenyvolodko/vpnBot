@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Column, ForeignKey, Date, DateTime
+from sqlalchemy import BigInteger, Column, ForeignKey, Date, DateTime, UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -27,7 +27,7 @@ class User(Base):
 
     join_date = Column(Date, nullable=False, default=datetime.now().date())
 
-    inviter_id = Column(BigInteger, ForeignKey('user.id'), nullable=True, default=None)
+    inviter_id = Column(BigInteger, ForeignKey("user.id"), nullable=True, default=None)
 
 
 class Ips(Base):
@@ -35,7 +35,7 @@ class Ips(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    interface: Mapped[str] = mapped_column(nullable=False, default='wg0')
+    interface: Mapped[str] = mapped_column(nullable=False, default="wg0")
 
     ipv4: Mapped[str] = mapped_column(unique=True, nullable=False)
 
@@ -85,8 +85,9 @@ class Client(Base):
 
     user = relationship("User", backref="clients")
     keys = relationship("Keys", back_populates="client", uselist=False)
-    # keys = relationship("Keys", back_populates="client", foreign_keys=[keys_id], uselist=False)
     ips = relationship("Ips", back_populates="client", uselist=False)
+
+    __table_args__ = (UniqueConstraint("user_id", "device_num"),)
 
 
 class Transaction(Base):
@@ -136,6 +137,10 @@ class Payment(Base):
         BigInteger,
         ForeignKey("user.id"),
     )
+
+    value: Mapped[int] = mapped_column(nullable=False)
+
+    related_message_id: Mapped[int] = mapped_column(nullable=False)
 
     status: Mapped[PaymentStatusEnum] = mapped_column(
         nullable=False, default=PaymentStatusEnum.PENDING

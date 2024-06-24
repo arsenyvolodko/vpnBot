@@ -8,7 +8,13 @@ from wireguard_tools.wireguard_keys import WireguardKeys
 class WireguardClient:
 
     def __init__(
-            self, name: str, ipv4: str, ipv6: str, keys: WireguardKeys, endpoint: str, server_public_key: str
+        self,
+        name: str,
+        ipv4: str,
+        ipv6: str,
+        keys: WireguardKeys,
+        endpoint: str,
+        server_public_key: str,
     ):
         if not all((name, ipv4, ipv6, keys, endpoint, server_public_key)):
             raise ValueError("Config params cannot be None.")

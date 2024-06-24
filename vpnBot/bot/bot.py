@@ -6,15 +6,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, CallbackQuery, Message
 
 from vpnBot import config
+from vpnBot.consts import states
+from vpnBot.consts.common import *
+from vpnBot.consts.states import ADDING_DEVICE_STATE
+from vpnBot.consts.texts_storage import *
 from vpnBot.db import db_manager
-from vpnBot.db.tables import User, Transaction
+from vpnBot.db.tables import User, Transaction, Payment
 from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum
 from vpnBot.exceptions.clients.client_base_error import ClientBaseError
 from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import *
-from vpnBot.consts import states
-from vpnBot.consts.common import *
-from vpnBot.consts.texts_storage import *
 from vpnBot.utils.bot_funcs import (
     get_user_balance,
     get_wg_client_by_client,
@@ -22,6 +23,8 @@ from vpnBot.utils.bot_funcs import (
     process_transaction,
     generate_invitation_link,
     check_invitation,
+    delete_message_or_delete_markup,
+    create_payment,
 )
 from vpnBot.utils.files import delete_file
 from vpnBot.utils.filters import MainMenuFilter
@@ -33,7 +36,7 @@ dp.include_router(router)
 
 @dp.message(CommandStart())
 async def welcome_message(message: Message, command: CommandObject):
-    user = await db_manager.get_record(User, message.from_user.id)
+    user = await db_manager.get_record(User, id=message.from_user.id)
 
     if not user:
         if inviter_id := command.args:
@@ -49,13 +52,14 @@ async def welcome_message(message: Message, command: CommandObject):
         )
         await db_manager.add_record(new_transaction)
 
-    await message.answer(TextsStorage.START_TEXT, reply_markup=get_start_keyboard())
+    await message.answer(
+        TextsStorage.START_TEXT, reply_markup=get_start_keyboard(from_start=True)
+    )
 
 
 @router.message(Command("menu"))
 async def handle_main_menu_callback(message: Message):
-    await message.bot.send_message(
-        message.from_user.id,
+    await message.answer(
         text=TextsStorage.MAIN_MENU_TEXT,
         reply_markup=get_main_menu_keyboard(),
     )
@@ -63,15 +67,20 @@ async def handle_main_menu_callback(message: Message):
 
 @router.callback_query(MainMenuFilter())
 async def handle_main_menu_callback(call: CallbackQuery):
+    text = (
+        TextsStorage.MAIN_MENU_TEXT_FROM_START
+        if call.data == ButtonsStorage.GO_TO_MAIN_MENU_FROM_START.callback
+        else TextsStorage.MAIN_MENU_TEXT
+    )
     await call.message.edit_text(
-        text=TextsStorage.MAIN_MENU_TEXT,
+        text=text,
         reply_markup=get_main_menu_keyboard(),
     )
 
 
 @router.callback_query(F.data == ButtonsStorage.DEVICES.callback)
 async def handle_callback(call: CallbackQuery):
-    user_devices = await db_manager.get_user_devices(call.from_user.id)
+    user_devices = await db_manager.get_records(Client, user_id=call.from_user.id)
     await call.message.edit_text(
         text=(
             TextsStorage.CHOOSE_DEVICE
@@ -94,10 +103,16 @@ async def handle_query(call: CallbackQuery):
 
 
 @router.callback_query(F.data == ButtonsStorage.ADD_DEVICE_CONFIRMATION.callback)
-async def add_device_confirmed(call: CallbackQuery):
+async def add_device_confirmed(call: CallbackQuery, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state == ADDING_DEVICE_STATE:
+        return
+    await state.set_state(ADDING_DEVICE_STATE)
+    await call.message.edit_text("Добавляем устройство..")
+
     try:
         client = await db_manager.add_client(call.from_user.id)
-        await call.message.answer(TextsStorage.DEVICE_SUCCESSFULLY_ADDED)
+        await call.message.edit_text(TextsStorage.DEVICE_SUCCESSFULLY_ADDED)
         wg_client = await get_wg_client_by_client(client)
         await send_config_and_qr(wg_client, call, client.device_num)
         return
@@ -105,6 +120,8 @@ async def add_device_confirmed(call: CallbackQuery):
         text = e.message
     except Exception:
         text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
+    finally:
+        await state.clear()
     await call.message.edit_text(
         text=text, reply_markup=get_back_to_main_menu_keyboard()
     )
@@ -117,22 +134,23 @@ async def add_device_confirmed(call: CallbackQuery):
 async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactory):
     await call.message.edit_text(
         text=TextsStorage.DELETE_DEVICE_CONFIRMATION_INFO,
-        reply_markup=get_delete_device_confirmation_keyboard(
-            callback_data.device_num
-        )
+        reply_markup=get_delete_device_confirmation_keyboard(callback_data.device_num),
     )
 
 
 # noinspection PyTypeChecker
 @router.callback_query(
-    DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DELETE_DEVICE_CONFIRMATION.callback)
+    DevicesCallbackFactory.filter(
+        F.callback == ButtonsStorage.DELETE_DEVICE_CONFIRMATION.callback
+    )
 )
 async def handle_specific_device_query(
-        call: CallbackQuery, callback_data: DevicesCallbackFactory
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
+    await call.message.edit_text(TextsStorage.ADDING_DEVICE_INFO_MSG)
     device_num = callback_data.device_num
-    client = await db_manager.get_clint_by_user_id_and_device_num(
-        call.from_user.id, device_num
+    client = await db_manager.get_record(
+        Client, user_id=call.from_user.id, device_num=device_num
     )
     try:
         await db_manager.delete_client(client)
@@ -152,11 +170,11 @@ async def handle_specific_device_query(
     )
 )
 async def handle_get_device_config_and_qr_query(
-        call: CallbackQuery, callback_data: DevicesCallbackFactory
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
-    client = await db_manager.get_clint_by_user_id_and_device_num(
-        call.from_user.id, device_num
+    client = await db_manager.get_record(
+        Client, user_id=call.from_user.id, device_num=device_num
     )
     wg_client = await get_wg_client_by_client(client)
     await send_config_and_qr(wg_client, call, client.device_num)
@@ -167,11 +185,11 @@ async def handle_get_device_config_and_qr_query(
     DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DEVICE.callback)
 )
 async def handle_specific_device_query(
-        call: CallbackQuery, callback_data: DevicesCallbackFactory
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
-    client = await db_manager.get_clint_by_user_id_and_device_num(
-        call.from_user.id, device_num
+    client = await db_manager.get_record(
+        Client, user_id=call.from_user.id, device_num=device_num
     )
     status = TextsStorage.ACTIVE if client.active else TextsStorage.INACTIVE
     await call.message.edit_text(
@@ -189,11 +207,11 @@ async def handle_specific_device_query(
     )
 )
 async def handle_resume_device_subscription_query(
-        call: CallbackQuery, callback_data: DevicesCallbackFactory
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     device_num = callback_data.device_num
-    client = await db_manager.get_clint_by_user_id_and_device_num(
-        call.from_user.id, device_num
+    client = await db_manager.get_record(
+        Client, user_id=call.from_user.id, device_num=device_num
     )
     if not client.active:
         try:
@@ -213,7 +231,7 @@ async def handle_resume_device_subscription_query(
 @router.callback_query(F.data == ButtonsStorage.FINANCE.callback)
 async def handle_finance_callback_query(call: CallbackQuery):
     user_id = call.from_user.id
-    user = await db_manager.get_record(User, user_id)
+    user = await db_manager.get_record(User, id=user_id)
     await call.message.edit_text(
         TextsStorage.ON_YOUR_ACCOUNT.format(user.balance),
         reply_markup=get_finance_callback(),
@@ -223,11 +241,11 @@ async def handle_finance_callback_query(call: CallbackQuery):
 @router.callback_query(F.data == ButtonsStorage.GET_TRANSACTIONS_HISTORY.callback)
 async def handle_get_transactions_query(call: CallbackQuery):
     user_id = call.from_user.id
-    user: User = await db_manager.get_record(User, user_id)
+    user: User = await db_manager.get_record(User, id=user_id)
     balance = user.balance
     cur_time = datetime.datetime.now().strftime("%d.%m.%Y, %H:%M")
     text = TextsStorage.CURRENT_BALANCE.format(balance) + "\n\n"
-    result = await db_manager.get_user_transactions(user_id)
+    result = await db_manager.get_records(Transaction, user_id=user_id)
     for transaction in result:
         cur_transaction = await process_transaction(transaction)
         text += cur_transaction + "\n\n"
@@ -239,7 +257,7 @@ async def handle_get_transactions_query(call: CallbackQuery):
         file.write(text)
         file.close()
 
-    await call.message.delete()
+    await delete_message_or_delete_markup(call.message)
 
     await call.bot.send_document(
         chat_id=call.from_user.id,
@@ -307,29 +325,19 @@ async def handle_invitation_link_query(call: CallbackQuery):
     )
 
 
-# noinspection PyTypeChecker
-@router.callback_query(
-    FillUpBalanceFactory.filter(
-        F.callback == ButtonsStorage.FILL_UP_BALANCE_VALUE.callback
-    )
-)
+@router.callback_query(FillUpBalanceFactory.filter())
 async def handle_fill_up_balance_factory_query(
-        call: CallbackQuery, callback_data: FillUpBalanceFactory
+    call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
-    updated = await db_manager.update_balance(
+    payment = create_payment(callback_data.value)
+    db_payment = Payment(
+        id=payment.id,
         user_id=call.from_user.id,
         value=callback_data.value,
-        op_type=OperationTypeEnum.INCREASE,
-        comment=TransactionCommentEnum.FILL_UP_BALANCE,
+        related_message_id=call.message.message_id,
     )
-
-    text = (
-        TextsStorage.BALANCE_SUCCESSFULLY_FILLED_UP
-        if updated
-        else TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
-    )
-
+    await db_manager.add_record(db_payment)
     await call.message.edit_text(
-        text=text,
-        reply_markup=get_back_to_main_menu_keyboard()
+        TextsStorage.FILL_UP_BALANCE_INFO_MSG.format(callback_data.value),
+        reply_markup=get_payment_url_keyboard(payment.confirmation.confirmation_url),
     )

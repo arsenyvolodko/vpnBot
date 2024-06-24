@@ -37,33 +37,27 @@ class DBManager:
                 await session.commit()
                 return new_record
 
-    async def get_record(self, model: type[Base], record_id: int):
+    async def get_records(self, model: type[Base], **kwargs):
+        query = select(model).where(
+            *[getattr(model, key) == value for key, value in kwargs.items()]
+        )
         async with self.session_maker() as session:
-            query = select(model).where(model.id == record_id)
             result = await session.execute(query)
-            record = result.scalars().first()
-            return record
+            records = result.scalars().all()
+        return records
+
+    async def get_record(self, model: type[Base], **kwargs):
+        return (
+            records[0]
+            if (records := (await self.get_records(model, **kwargs)))
+            else None
+        )
 
     async def delete_record(self, record: Base):
         async with self.session_maker() as session:
             async with session.begin():
                 session.delete(record)
                 await session.commit()
-
-    async def get_user_devices(self, user_id: int) -> list[Client]:
-        async with self.session_maker() as session:
-            # noinspection PyTypeChecker
-            query = select(Client).where(Client.user_id == user_id)
-            result = await session.execute(query)
-            clients = result.scalars()
-            return clients.all()
-
-    # noinspection PyTypeChecker
-    async def get_ips_by_client_id(self, client_id: int) -> Ips | None:
-        async with self.session_maker() as session:
-            query = select(Ips).where(Ips.client_id == client_id)
-            result = await session.execute(query)
-            return result.scalars().first()
 
     # noinspection PyTypeChecker
     async def get_keys_by_client_id(self, client_id: int) -> Keys | None:
@@ -74,11 +68,11 @@ class DBManager:
 
     @staticmethod
     async def _add_transaction_util(
-            session,
-            user_id: int,
-            value: int,
-            op_type: OperationTypeEnum,
-            comment: TransactionCommentEnum,
+        session,
+        user_id: int,
+        value: int,
+        op_type: OperationTypeEnum,
+        comment: TransactionCommentEnum,
     ):
         new_transaction = Transaction(
             user_id=user_id, value=value, operation_type=op_type, comment=comment
@@ -96,11 +90,11 @@ class DBManager:
 
     @staticmethod
     async def _update_balance_util(
-            session,
-            user_id: int,
-            value: int,
-            op_type: OperationTypeEnum,
-            comment: TransactionCommentEnum,
+        session,
+        user_id: int,
+        value: int,
+        op_type: OperationTypeEnum,
+        comment: TransactionCommentEnum,
     ) -> bool:
         # noinspection PyTypeChecker
         query = select(User).where(User.id == user_id).with_for_update()
@@ -140,18 +134,15 @@ class DBManager:
                 )
                 if not balance_updated:
                     raise NotEnoughMoneyError()
-
                 ips_query = select(Ips).where(Ips.client_id == null()).with_for_update()
                 ips_result = await session.execute(ips_query)
                 ips = ips_result.scalars().first()
 
                 if not ips:
                     raise NoAvailableIpsError()
-
                 keys = Keys(WireguardKeys())
                 session.add(keys)
                 await session.flush()
-
                 new_client = Client(
                     user_id=user_id,
                     device_num=new_device_num,
@@ -161,7 +152,6 @@ class DBManager:
                 session.add(new_client)
                 await session.flush()
                 ips.client_id = new_client.id
-
                 wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
                 wg_client = WireguardClient(
                     name=f"{user_id}_{new_device_num}",
@@ -172,23 +162,11 @@ class DBManager:
                     server_public_key=wg_config.public_key,
                 )
                 await wg_config.add_client(wg_client)
-
                 await session.commit()
                 return new_client
 
-    async def get_clint_by_user_id_and_device_num(
-            self, user_id: int, device_num: int
-    ) -> Client:
-        async with self.session_maker() as session:
-            # noinspection PyTypeChecker
-            query = select(Client).where(
-                Client.user_id == user_id, Client.device_num == device_num
-            )
-            result = await session.execute(query)
-            return result.scalars().first()
-
     async def _get_wg_client_by_client(self, client: Client):
-        ips = await self.get_ips_by_client_id(client.id)
+        ips = await db_manager.get_record(Ips, client_id=client.id)
         wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
         keys = await self.get_keys_by_client_id(client.id)
         wg_client = WireguardClient(
@@ -202,7 +180,7 @@ class DBManager:
         return wg_client
 
     async def delete_client(self, client: Client) -> None:
-        ips = await self.get_ips_by_client_id(client.id)
+        ips = await db_manager.get_record(Ips, client_id=client.id)
         keys = await self.get_keys_by_client_id(client.id)
         if not keys or not ips:
             return
@@ -218,15 +196,8 @@ class DBManager:
                 await wg_config.remove_client(wg_client)
             await session.commit()
 
-    async def get_user_transactions(self, user_id) -> list[Transaction]:
-        async with self.session_maker() as session:
-            async with session.begin():
-                query = select(Transaction).where(Transaction.user_id == user_id)
-                result = await session.execute(query)
-                return result.scalars().all()
-
     async def add_promo_code_usage(
-            self, promo_code_text: str, user_id: int
+        self, promo_code_text: str, user_id: int
     ) -> PromoCode:
         async with self.session_maker() as session:
             async with session.begin():
@@ -273,7 +244,7 @@ class DBManager:
                 return promo_code
 
     async def get_clients_by_end_date(
-            self, end_date: datetime.date, activity_status: bool
+        self, end_date: datetime.date, activity_status: bool
     ) -> list[Client]:
         async with self.session_maker() as session:
             async with session.begin():
@@ -285,7 +256,7 @@ class DBManager:
                 return result.scalars().all()
 
     async def renew_subscription(
-            self, client_id: int, user_id: int, end_date: datetime.date
+        self, client_id: int, user_id: int, end_date: datetime.date
     ):
         async with self.session_maker() as session:
             async with session.begin():
@@ -318,8 +289,8 @@ class DBManager:
     async def resume_device_subscription(self, client_id: int, user_id: int):
         async with self.session_maker() as session:
             async with session.begin():
-                client = await self.get_record(Client, client_id)
-                ips = await self.get_ips_by_client_id(client_id)
+                client = await self.get_record(Client, id=client_id)
+                ips = await db_manager.get_record(Ips, client_id=client.id)
                 keys = await self.get_keys_by_client_id(client_id)
                 if not client:
                     raise NoSuchClientError()
@@ -347,7 +318,13 @@ class DBManager:
                     server_public_key=wg_config.public_key,
                 )
                 await wg_config.add_client(wg_client)
+                await session.commit()
 
+    async def update_payment_status(self, payment_id: int, status: PaymentStatusEnum):
+        async with self.session_maker() as session:
+            async with session.begin():
+                payment: Payment = await self.get_record(Payment, id=payment_id)
+                payment.status = status
                 await session.commit()
 
 
