@@ -70,7 +70,7 @@ async def send_config_and_qr(
         call.from_user.id,
         photo=FSInputFile(qr_file),
         caption=TextsStorage.INSTRUCTION,
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await call.bot.send_message(

@@ -41,7 +41,7 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
         ButtonsStorage.DEVICES,
         ButtonsStorage.FINANCE,
         ButtonsStorage.PROMO_CODE,
-        # ButtonsStorage.INVITATION_LINK,
+        ButtonsStorage.INVITATION_LINK,
     )
 
 
@@ -168,10 +168,7 @@ def get_fill_up_balance_keyboard() -> InlineKeyboardMarkup:
 
 def get_payment_url_keyboard(payment_url: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(
-        text=TextsStorage.PAY,
-        url=payment_url
-    )
+    builder.button(text=TextsStorage.PAY, url=payment_url)
     builder.button(
         text=ButtonsStorage.GO_BACK.text,
         callback_data=ButtonsStorage.FINANCE.callback,

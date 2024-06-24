@@ -39,10 +39,7 @@ class DBManager:
 
     async def get_records(self, model: type[Base], **kwargs):
         query = select(model).where(
-            *[
-                getattr(model, key) == value
-                for key, value in kwargs.items()
-            ]
+            *[getattr(model, key) == value for key, value in kwargs.items()]
         )
         async with self.session_maker() as session:
             result = await session.execute(query)
@@ -50,7 +47,11 @@ class DBManager:
         return records
 
     async def get_record(self, model: type[Base], **kwargs):
-        return records[0] if (records := (await self.get_records(model, **kwargs))) else None
+        return (
+            records[0]
+            if (records := (await self.get_records(model, **kwargs)))
+            else None
+        )
 
     async def delete_record(self, record: Base):
         async with self.session_maker() as session:
@@ -67,11 +68,11 @@ class DBManager:
 
     @staticmethod
     async def _add_transaction_util(
-            session,
-            user_id: int,
-            value: int,
-            op_type: OperationTypeEnum,
-            comment: TransactionCommentEnum,
+        session,
+        user_id: int,
+        value: int,
+        op_type: OperationTypeEnum,
+        comment: TransactionCommentEnum,
     ):
         new_transaction = Transaction(
             user_id=user_id, value=value, operation_type=op_type, comment=comment
@@ -89,11 +90,11 @@ class DBManager:
 
     @staticmethod
     async def _update_balance_util(
-            session,
-            user_id: int,
-            value: int,
-            op_type: OperationTypeEnum,
-            comment: TransactionCommentEnum,
+        session,
+        user_id: int,
+        value: int,
+        op_type: OperationTypeEnum,
+        comment: TransactionCommentEnum,
     ) -> bool:
         # noinspection PyTypeChecker
         query = select(User).where(User.id == user_id).with_for_update()
@@ -196,7 +197,7 @@ class DBManager:
             await session.commit()
 
     async def add_promo_code_usage(
-            self, promo_code_text: str, user_id: int
+        self, promo_code_text: str, user_id: int
     ) -> PromoCode:
         async with self.session_maker() as session:
             async with session.begin():
@@ -243,7 +244,7 @@ class DBManager:
                 return promo_code
 
     async def get_clients_by_end_date(
-            self, end_date: datetime.date, activity_status: bool
+        self, end_date: datetime.date, activity_status: bool
     ) -> list[Client]:
         async with self.session_maker() as session:
             async with session.begin():
@@ -255,7 +256,7 @@ class DBManager:
                 return result.scalars().all()
 
     async def renew_subscription(
-            self, client_id: int, user_id: int, end_date: datetime.date
+        self, client_id: int, user_id: int, end_date: datetime.date
     ):
         async with self.session_maker() as session:
             async with session.begin():

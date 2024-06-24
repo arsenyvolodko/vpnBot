@@ -10,8 +10,6 @@ if __name__ == "__main__":
     for user in users:
         if user.id != MY_TG_ID:
             continue
-        send_message_safety(
-            bot, user.id, text=""
-        )
+        send_message_safety(bot, user.id, text="")
         cnt += 1
     print(f"successfully sent: {cnt}/{total}.")

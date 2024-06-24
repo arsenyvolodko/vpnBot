@@ -27,7 +27,7 @@ class User(Base):
 
     join_date = Column(Date, nullable=False, default=datetime.now().date())
 
-    inviter_id = Column(BigInteger, ForeignKey('user.id'), nullable=True, default=None)
+    inviter_id = Column(BigInteger, ForeignKey("user.id"), nullable=True, default=None)
 
 
 class Ips(Base):
@@ -35,7 +35,7 @@ class Ips(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    interface: Mapped[str] = mapped_column(nullable=False, default='wg0')
+    interface: Mapped[str] = mapped_column(nullable=False, default="wg0")
 
     ipv4: Mapped[str] = mapped_column(unique=True, nullable=False)
 
@@ -87,9 +87,7 @@ class Client(Base):
     keys = relationship("Keys", back_populates="client", uselist=False)
     ips = relationship("Ips", back_populates="client", uselist=False)
 
-    __table_args__ = (
-        UniqueConstraint('user_id', 'device_num'),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "device_num"),)
 
 
 class Transaction(Base):
@@ -147,5 +145,3 @@ class Payment(Base):
     status: Mapped[PaymentStatusEnum] = mapped_column(
         nullable=False, default=PaymentStatusEnum.PENDING
     )
-
-

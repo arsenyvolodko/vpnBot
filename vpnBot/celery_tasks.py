@@ -16,7 +16,7 @@ celery_app.conf.update(
     beat_schedule={
         "periodic_task": {
             "task": "vpnBot.celery_tasks.renew_subscription_task",
-            'schedule': crontab(hour="23", minute="55")
+            "schedule": crontab(hour="23", minute="55"),
         },
     },
 )

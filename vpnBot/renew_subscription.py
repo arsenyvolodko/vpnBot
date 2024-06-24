@@ -36,7 +36,9 @@ async def handle_delete_clients():
     )
     for client in clients_to_delete:
         await db_manager.delete_client(client)
-        await send_message_safety(bot, client.user_id, TextsStorage.INACTIVE_DEVICE_DELETED.format(client.id))
+        await send_message_safety(
+            bot, client.user_id, TextsStorage.INACTIVE_DEVICE_DELETED.format(client.id)
+        )
 
 
 async def main():
@@ -44,4 +46,4 @@ async def main():
         await handle_today_payments()
         await handle_delete_clients()
     except Exception as e:
-        print('exception:', type(e), e)
+        print("exception:", type(e), e)

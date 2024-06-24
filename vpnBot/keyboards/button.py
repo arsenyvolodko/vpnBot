@@ -20,8 +20,8 @@ class Button:
         return self.name.lower() + self.callback_suffix
 
     def get_button(self, **kwargs) -> InlineKeyboardButton:
-        text = kwargs.get('text', self.txt)
-        url = kwargs.get('url', None)
+        text = kwargs.get("text", self.txt)
+        url = kwargs.get("url", None)
         if url:
             return InlineKeyboardButton(text=text, url=url)
         return InlineKeyboardButton(text=text, callback_data=self.callback)

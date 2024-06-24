@@ -19,16 +19,16 @@ class WireguardConfig:
         self.debug: bool = False
 
     def set_config(
-            self,
-            interface: str,
-            private_key: str,
-            endpoint: str,
-            config_path: Path,
-            sync_config_file_path: Path,
-            **kwargs
+        self,
+        interface: str,
+        private_key: str,
+        endpoint: str,
+        config_path: Path,
+        sync_config_file_path: Path,
+        **kwargs,
     ):
         if not all(
-                (interface, private_key, endpoint, config_path, sync_config_file_path)
+            (interface, private_key, endpoint, config_path, sync_config_file_path)
         ):
             raise ValueError("Config params cannot be None.")
         self.interface = interface
@@ -36,7 +36,7 @@ class WireguardConfig:
         self.public_key = WireguardKeys.generate_public_key(private_key)
         self.endpoint = endpoint
         self.config_path = config_path
-        self.debug = kwargs.get('debug', False)
+        self.debug = kwargs.get("debug", False)
 
     async def add_client(self, client: WireguardClient):
         new_data = self._gen_client_data(client)
