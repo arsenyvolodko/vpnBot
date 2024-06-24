@@ -1,3 +1,5 @@
+import time
+
 from yookassa.domain.notification import WebhookNotification
 
 from vpnBot.bot.main import bot
@@ -28,6 +30,7 @@ async def fill_up_balance(json_payment):
             message_id=db_payment.related_message_id,
             text=TextsStorage.SOMETHING_WENT_WRONG_TRYING_AGAIN_MSG,
         )
+        time.sleep(5)
         updated = await update(db_payment)
 
     text = (

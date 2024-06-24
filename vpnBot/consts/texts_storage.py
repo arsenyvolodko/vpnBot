@@ -36,7 +36,7 @@ class TextsStorage(ABC):
     DELETE_DEVICE_CONFIRMATION_INFO = "Вы уверены, что хотите удалить устройство? Доступ к vpn будет ограничен сразу после удаления."
 
     SOMETHING_WENT_WRONG_TRYING_AGAIN_MSG = (
-        "К сожалению, что-то пошло не так :( \n" "Пробуем еще раз.."
+        "К сожалению, что-то пошло не так :( \n Пробуем еще раз, подождите немного.."
     )
 
     SOMETHING_WENT_WRONG_ERROR_MSG = (
