@@ -1,5 +1,3 @@
-import uuid
-
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -165,4 +163,18 @@ def get_fill_up_balance_keyboard() -> InlineKeyboardMarkup:
         callback_data=ButtonsStorage.FINANCE.callback,
     )
     builder.adjust(3, 3, 1)
+    return builder.as_markup()
+
+
+def get_payment_url_keyboard(payment_url: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=TextsStorage.PAY,
+        url=payment_url
+    )
+    builder.button(
+        text=ButtonsStorage.GO_BACK.text,
+        callback_data=ButtonsStorage.FINANCE.callback,
+    )
+    builder.adjust(1)
     return builder.as_markup()

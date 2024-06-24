@@ -44,6 +44,12 @@ class TextsStorage(ABC):
         "Попробуйте повторить операцию еще раз."
     )
 
+    SOMETHING_WENT_VERY_WRONG_ERROR_MSG = (
+        "К сожалению, что-то пошло не так :( \n"
+        "Похоже, мы списали средства с карты и не смогли зачислить их."
+        "Свяжитесь с @arseny_volodko."
+    )
+
     SPECIFIC_DEVICE_INFO_TEXT = (
         "Устройство №{}:\n" "Статус: {}.\n" "Следующее списание: {}.\n"
     )
@@ -127,6 +133,10 @@ class TextsStorage(ABC):
     BALANCE_SUCCESSFULLY_FILLED_UP = (
         "Баланс успешно пополнен."
     )
+
+    FILL_UP_BALANCE_INFO_MSG = "Пополнение баланса на {}₽."
+    PAY = "Оплатить"
+
 
     INSTRUCTION = (
         "<b>Инструкция по подключению:</b>\n"

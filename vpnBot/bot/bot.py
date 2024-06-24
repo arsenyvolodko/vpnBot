@@ -6,16 +6,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, CallbackQuery, Message
 
 from vpnBot import config
+from vpnBot.consts import states
+from vpnBot.consts.common import *
 from vpnBot.consts.states import ADDING_DEVICE_STATE
+from vpnBot.consts.texts_storage import *
 from vpnBot.db import db_manager
-from vpnBot.db.tables import User, Transaction
+from vpnBot.db.tables import User, Transaction, Payment
 from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum
 from vpnBot.exceptions.clients.client_base_error import ClientBaseError
 from vpnBot.exceptions.promo_codes.promo_code_base_error import PromoCodeBaseError
 from vpnBot.keyboards.keyboards import *
-from vpnBot.consts import states
-from vpnBot.consts.common import *
-from vpnBot.consts.texts_storage import *
 from vpnBot.utils.bot_funcs import (
     get_user_balance,
     get_wg_client_by_client,
@@ -24,6 +24,7 @@ from vpnBot.utils.bot_funcs import (
     generate_invitation_link,
     check_invitation,
     delete_message_or_delete_markup,
+    create_payment,
 )
 from vpnBot.utils.files import delete_file
 from vpnBot.utils.filters import MainMenuFilter
@@ -324,24 +325,19 @@ async def handle_invitation_link_query(call: CallbackQuery):
     )
 
 
-# noinspection PyTypeChecker
 @router.callback_query(FillUpBalanceFactory.filter())
 async def handle_fill_up_balance_factory_query(
     call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
-    updated = await db_manager.update_balance(
+    payment = create_payment(callback_data.value)
+    db_payment = Payment(
+        id=payment.id,
         user_id=call.from_user.id,
         value=callback_data.value,
-        op_type=OperationTypeEnum.INCREASE,
-        comment=TransactionCommentEnum.FILL_UP_BALANCE,
+        related_message_id=call.message.message_id,
     )
-
-    text = (
-        TextsStorage.BALANCE_SUCCESSFULLY_FILLED_UP
-        if updated
-        else TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
-    )
-
+    await db_manager.add_record(db_payment)
     await call.message.edit_text(
-        text=text, reply_markup=get_back_to_main_menu_keyboard()
+        TextsStorage.FILL_UP_BALANCE_INFO_MSG.format(callback_data.value),
+        reply_markup=get_payment_url_keyboard(payment.confirmation.confirmation_url),
     )

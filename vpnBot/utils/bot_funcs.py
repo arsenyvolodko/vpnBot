@@ -1,11 +1,13 @@
-import asyncio
-import time
-from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from aiogram.types import CallbackQuery, FSInputFile, Message
+from yookassa import Payment
+from yookassa.domain.response import PaymentResponse
 
 from vpnBot import config
+from vpnBot.config import BOT_TG_URL
+from vpnBot.consts.common import INVITATION_BONUS
+from vpnBot.consts.texts_storage import TextsStorage
 from vpnBot.db import db_manager
 from vpnBot.db.tables import User, Transaction, Client, Ips
 from vpnBot.enums import TransactionCommentEnum
@@ -14,13 +16,9 @@ from vpnBot.keyboards.keyboards import (
     get_back_to_main_menu_keyboard,
     get_main_menu_keyboard,
 )
-from vpnBot.consts.common import INVITATION_BONUS
-from vpnBot.consts.texts_storage import TextsStorage
 from vpnBot.utils.files import delete_file
 from wireguard_tools.wireguard_client import WireguardClient
 
-
-INACTIVE_MESSAGES = set()
 
 async def send_message_safety(bot, user_id: int, text: str, **kwargs):
     try:
@@ -124,3 +122,18 @@ async def check_invitation(message: Message, inviter_id: Any) -> None:
         )
     except ValueError:
         return
+
+
+def create_payment(value: int) -> PaymentResponse:
+    payment = Payment.create(
+        {
+            "amount": {"value": f"{value}.00", "currency": "RUB"},
+            "confirmation": {
+                "type": "redirect",
+                "return_url": BOT_TG_URL,
+            },
+            "capture": True,
+            "description": f"Пополнение баланса на {value} рублей",
+        }
+    )
+    return payment

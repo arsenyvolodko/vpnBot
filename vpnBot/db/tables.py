@@ -140,6 +140,12 @@ class Payment(Base):
         ForeignKey("user.id"),
     )
 
+    value: Mapped[int] = mapped_column(nullable=False)
+
+    related_message_id: Mapped[int] = mapped_column(nullable=False)
+
     status: Mapped[PaymentStatusEnum] = mapped_column(
         nullable=False, default=PaymentStatusEnum.PENDING
     )
+
+

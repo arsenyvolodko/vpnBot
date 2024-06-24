@@ -1,9 +1,7 @@
 from enum import Enum
 
 
-class PaymentStatusEnum(Enum):
+class PaymentStatusEnum(str, Enum):
     PENDING = 'pending'
-    WAITING_FOR_CAPTURE = 'waiting_for_capture'
     SUCCEEDED = 'succeeded'
-    CANCELED = 'canceled'
-    ERROR_AFTER_PAYMENT = 'error_after_payment'
+    CANCELED = "canceled"

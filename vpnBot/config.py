@@ -42,4 +42,5 @@ WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {
 }
 
 # YOOKASSA
-Configuration.configure_auth_token(os.environ.get("YOOKASSA_OAUTH_TOKEN"))
+YOOKASSA_OAUTH_TOKEN = os.environ.get("YOOKASSA_OAUTH_TOKEN")
+Configuration.configure_auth_token(YOOKASSA_OAUTH_TOKEN)

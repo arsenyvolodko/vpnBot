@@ -30,6 +30,18 @@ services:
     depends_on:
       - redis
 
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+    command: uvicorn server.main:app --host 0.0.0.0 --port 8080
+    depends_on:
+      - redis
+    ports:
+      - "8080:8080"
+
   redis:
     image: redis:latest
     restart: always
