@@ -147,7 +147,7 @@ async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactor
 async def handle_specific_device_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
-    await call.message.edit_text("Удаляем устройство..")
+    await call.message.edit_text(TextsStorage.ADDING_DEVICE_INFO_MSG)
     device_num = callback_data.device_num
     client = await db_manager.get_record(
         Client, user_id=call.from_user.id, device_num=device_num

@@ -318,7 +318,13 @@ class DBManager:
                     server_public_key=wg_config.public_key,
                 )
                 await wg_config.add_client(wg_client)
+                await session.commit()
 
+    async def update_payment_status(self, payment_id: int, status: PaymentStatusEnum):
+        async with self.session_maker() as session:
+            async with session.begin():
+                payment: Payment = await self.get_record(Payment, id=payment_id)
+                payment.status = status
                 await session.commit()
 
 

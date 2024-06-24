@@ -6,7 +6,7 @@ from vpnBot.bot.main import bot
 from vpnBot.consts.texts_storage import TextsStorage
 from vpnBot.db import db_manager
 from vpnBot.db.tables import Payment
-from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum
+from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum, PaymentStatusEnum
 from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
 
 
@@ -32,6 +32,18 @@ async def fill_up_balance(json_payment):
         )
         time.sleep(5)
         updated = await update(db_payment)
+
+    try:
+        if updated:
+            await db_manager.update_payment_status(
+                payment.id, PaymentStatusEnum.SUCCEEDED
+            )
+        else:
+            await db_manager.update_payment_status(
+                payment.id, PaymentStatusEnum.CANCELED
+            )
+    except Exception:
+        pass
 
     text = (
         TextsStorage.BALANCE_SUCCESSFULLY_FILLED_UP

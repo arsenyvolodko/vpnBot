@@ -1,6 +1,5 @@
 version: '3'
 services:
-
   bot:
     build:
       context: .
@@ -36,15 +35,15 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/usr/src/app
-    command: uvicorn server.main:app --host 0.0.0.0 --port 8080
+    command: uvicorn server.main:app --host 0.0.0.0 --port ${FAST_API_PORT}
     depends_on:
       - redis
     ports:
-      - "8080:8080"
+      - "${FAST_API_PORT}:${FAST_API_PORT}"
 
   redis:
     image: redis:latest
     restart: always
     hostname: redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"

@@ -129,6 +129,8 @@ class TextsStorage(ABC):
     FILL_UP_BALANCE_INFO_MSG = "Пополнение баланса на {}₽."
     PAY = "Оплатить"
 
+    ADDING_DEVICE_INFO_MSG = "Удаляем устройство.."
+
     INSTRUCTION = (
         "<b>Инструкция по подключению:</b>\n"
         "1. Откройте QR на другом устройстве.\n"

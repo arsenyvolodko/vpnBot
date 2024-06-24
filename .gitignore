@@ -1,8 +1,4 @@
 .idea/
-.gitignore
 .DS_Store/
 __pycache__/
 .env
-wg_files/
-draft.py
-body.py
