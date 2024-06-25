@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 from pathlib import Path
 
@@ -78,10 +79,11 @@ class WireguardConfig:
 
     async def _sync_config(self):
         try:
-            subprocess.check_call(
-                f"{self.sync_config_file_path} %s %s"
-                % (self.interface, str(self.config_path)),
-                shell=True,
+            subprocess.run(
+                [self.interface],
+                check=True,
+                capture_output=True,
+                text=True
             )
-        except Exception as e:
-            raise SyncConfigError(e)
+        except Exception:
+            raise SyncConfigError()
