@@ -1,3 +1,4 @@
 #!/bin/bash
 
-wg syncconf "$1" "$2"
+wg-quick down "$1"
+wg-quick up "$1"

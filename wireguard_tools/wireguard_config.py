@@ -79,7 +79,7 @@ class WireguardConfig:
 
     async def _sync_config(self):
         subprocess.run(
-            [self.interface],
+            [self.sync_config_file_path, self.interface],
             check=True,
             capture_output=True,
             text=True
