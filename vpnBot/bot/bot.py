@@ -72,6 +72,13 @@ async def handle_main_menu_callback(call: CallbackQuery):
         if call.data == ButtonsStorage.GO_TO_MAIN_MENU_FROM_START.callback
         else TextsStorage.MAIN_MENU_TEXT
     )
+    if call.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.callback:
+        await call.message.delete_reply_markup()
+        await call.message.answer(
+            text=text,
+            reply_markup=get_main_menu_keyboard(),
+        )
+        return
     await call.message.edit_text(
         text=text,
         reply_markup=get_main_menu_keyboard(),

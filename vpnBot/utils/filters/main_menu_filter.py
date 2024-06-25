@@ -10,4 +10,5 @@ class MainMenuFilter(Filter):
             call.data == ButtonsStorage.GO_TO_MAIN_MENU.callback
             or call.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
             or call.data == ButtonsStorage.GO_TO_MAIN_MENU_FROM_START.callback
+            or call.data == ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.callback
         )

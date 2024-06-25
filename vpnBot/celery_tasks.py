@@ -5,8 +5,10 @@ from celery import shared_task
 from celery.schedules import crontab
 
 from celery_config import celery_app
+from server.models import MessageModel
 from vpnBot.payments import fill_up_balance
 from vpnBot.renew_subscription import main
+from vpnBot.send_message_to_everyone import send_message_to_all
 
 logger = logging.getLogger(__name__)
 
@@ -30,3 +32,8 @@ def renew_subscription_task():
 @shared_task
 def process_payment(payment):
     asyncio.run(fill_up_balance(payment))
+
+
+@shared_task
+def send_message_to_everyone(message: MessageModel):
+    asyncio.run(send_message_to_all(message))

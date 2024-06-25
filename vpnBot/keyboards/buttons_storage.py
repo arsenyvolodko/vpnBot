@@ -6,6 +6,7 @@ from vpnBot.keyboards.button import Button
 class ButtonsTextStorage(ABC):
     GO_TO_MAIN_MENU = "Перейти в меню"
     GO_BACK_TO_MAIN_MENU = "Вернуться в меню"
+    GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE = "Вернуться в меню"
     GO_TO_MAIN_MENU_FROM_START = "Перейти в меню"
 
     GO_BACK = "Назад"
@@ -51,6 +52,7 @@ class AutoNameButtonMeta(type):
 class ButtonsStorage(metaclass=AutoNameButtonMeta):
     GO_TO_MAIN_MENU = Button()
     GO_BACK_TO_MAIN_MENU = Button()
+    GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE = Button()
     GO_TO_MAIN_MENU_FROM_START = Button()
     GO_BACK = Button()
 
