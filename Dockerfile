@@ -21,4 +21,5 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN chmod +x ./wireguard_tools/sync_config.sh
 RUN mkdir ./tmp_client_files
+RUN chmod -R 755 ./tmp_client_files
 CMD ["python3", "vpnBot/bot/main.py"]
