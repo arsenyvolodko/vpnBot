@@ -78,9 +78,11 @@ class WireguardConfig:
         return new_data
 
     async def _sync_config(self):
-        subprocess.run(
-            [self.sync_config_file_path, self.interface],
-            check=True,
-            capture_output=True,
-            text=True
-        )
+        try:
+            subprocess.check_call(
+                f"{self.sync_config_file_path} %s"
+                % (self.interface, ),
+                shell=True,
+            )
+        except Exception as e:
+            raise SyncConfigError(e)
