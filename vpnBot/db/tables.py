@@ -39,8 +39,6 @@ class Ips(Base):
 
     ipv4: Mapped[str] = mapped_column(unique=True, nullable=False)
 
-    ipv6: Mapped[str] = mapped_column(unique=True, nullable=False)
-
     client_id: Mapped[int] = mapped_column(
         ForeignKey("client.id"), nullable=True, default=None
     )

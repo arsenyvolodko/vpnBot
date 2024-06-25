@@ -72,8 +72,7 @@ class WireguardConfig:
         new_data += f"### Client {client.name}\n"
         new_data += "[Peer]\n"
         new_data += f"PublicKey = {client.keys.public_key}\n"
-        allowed_ips = f"{client.ipv4}, {client.ipv6}"
-        new_data += f"AllowedIPs = {allowed_ips}\n"
+        new_data += f"AllowedIPs = {client.ipv4}\n"
         new_data += "\n"
         return new_data
 

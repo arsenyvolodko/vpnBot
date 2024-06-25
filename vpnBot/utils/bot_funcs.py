@@ -46,7 +46,6 @@ async def get_wg_client_by_client(client: Client) -> WireguardClient:
     wg_client = WireguardClient(
         name=f"{client.user_id}_{client.device_num}",
         ipv4=ips.ipv4,
-        ipv6=ips.ipv6,
         keys=wg_keys,
         endpoint=wg_config.endpoint,
         server_public_key=wg_config.public_key,

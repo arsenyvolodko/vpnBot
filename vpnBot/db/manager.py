@@ -156,7 +156,6 @@ class DBManager:
                 wg_client = WireguardClient(
                     name=f"{user_id}_{new_device_num}",
                     ipv4=ips.ipv4,
-                    ipv6=ips.ipv6,
                     keys=keys.get_as_wg_keys(),
                     endpoint=wg_config.endpoint,
                     server_public_key=wg_config.public_key,
@@ -172,7 +171,6 @@ class DBManager:
         wg_client = WireguardClient(
             name=f"{client.user_id}_{client.device_num}",
             ipv4=ips.ipv4,
-            ipv6=ips.ipv6,
             keys=keys.get_as_wg_keys(),
             endpoint=wg_config.endpoint,
             server_public_key=wg_config.public_key,
@@ -312,7 +310,6 @@ class DBManager:
                 wg_client = WireguardClient(
                     name=f"{user_id}_{client.device_num}",
                     ipv4=ips.ipv4,
-                    ipv6=ips.ipv6,
                     keys=keys.get_as_wg_keys(),
                     endpoint=wg_config.endpoint,
                     server_public_key=wg_config.public_key,

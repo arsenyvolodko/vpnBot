@@ -11,16 +11,14 @@ class WireguardClient:
         self,
         name: str,
         ipv4: str,
-        ipv6: str,
         keys: WireguardKeys,
         endpoint: str,
         server_public_key: str,
     ):
-        if not all((name, ipv4, ipv6, keys, endpoint, server_public_key)):
+        if not all((name, ipv4, keys, endpoint, server_public_key)):
             raise ValueError("Config params cannot be None.")
         self.name = name
         self.ipv4 = ipv4
-        self.ipv6 = ipv6
         self.keys = keys
         self.endpoint = endpoint
         self.server_public_key = server_public_key
@@ -53,11 +51,11 @@ class WireguardClient:
         config_data = ""
         config_data += "[Interface]\n"
         config_data += f"PrivateKey = {self.keys.private_key}\n"
-        config_data += f"Address = {self.ipv4}, {self.ipv6}\n"
-        config_data += "DNS = 1.1.1.1, 1.0.0.1\n"
+        config_data += f"Address = {self.ipv4}\n"
+        config_data += "DNS = 1.1.1.1\n"
         config_data += "\n"
         config_data += "[Peer]\n"
         config_data += f"PublicKey = {self.server_public_key}\n"
         config_data += f"Endpoint = {self.endpoint}\n"
-        config_data += "AllowedIPs = 0.0.0.0/0, ::/0\n"
+        config_data += "AllowedIPs = 0.0.0.0/0\n"
         return config_data
