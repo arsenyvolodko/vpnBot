@@ -26,8 +26,11 @@ SYNC_CONFIG_FILE_PATH = WORK_DIR / "wireguard_tools/sync_config.sh"
 
 WG_CONFIGS_PATH = Path(os.environ.get("WG_CONFIGS_PATH"))
 _WG0_CONFIG_PATH = WG_CONFIGS_PATH / "wg0.conf"
+_WG1_CONFIG_PATH = WG_CONFIGS_PATH / "wg1.conf"
 
 _wg0_config = WireguardConfig()
+_wg1_config = WireguardConfig()
+
 _wg0_config.set_config(
     interface="wg0",
     private_key=os.environ.get("WG0_SERVER_PRIVATE_KEY"),
@@ -37,7 +40,16 @@ _wg0_config.set_config(
     debug=DEBUG,
 )
 
-WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {"wg0": _wg0_config}
+_wg1_config.set_config(
+    interface="wg1",
+    private_key=os.environ.get("WG1_SERVER_PRIVATE_KEY"),
+    endpoint=os.environ.get("WG1_SERVER_ENDPOINT"),
+    config_path=_WG1_CONFIG_PATH,
+    sync_config_file_path=SYNC_CONFIG_FILE_PATH,
+    debug=DEBUG,
+)
+
+WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {"wg0": _wg0_config, "wg1": _wg1_config}
 
 # YOOKASSA
 YOOKASSA_OAUTH_TOKEN = os.environ.get("YOOKASSA_OAUTH_TOKEN")
