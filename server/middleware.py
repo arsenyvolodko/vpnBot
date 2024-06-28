@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI()
@@ -24,9 +24,6 @@ class IPFilterMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host
         if client_ip not in ALLOWED_IPS:
-            raise HTTPException(
-                status_code=403,
-                detail="Access forbidden: Your IP address is not allowed.",
-            )
+            return Response(content="Access forbidden: Your IP address is not allowed.", status_code=403)
         response = await call_next(request)
         return response
