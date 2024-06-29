@@ -54,9 +54,7 @@ class WireguardConfig:
 
         new_data = old_data.replace(data_to_delete, "", 1)
         if new_data == old_data:
-            if data_to_delete not in old_data:
-                return
-            raise ClientNotFoundError("Client not found")
+            return
 
         with open(self.config_path, "w") as file:
             file.write(new_data)
