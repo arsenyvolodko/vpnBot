@@ -9,7 +9,7 @@ services:
       - ${SOURCE_SYNC_CONFIG_FILE_PATH}:${SYNC_CONFIG_FILE_PATH}
     env_file:
       - .env
-    command: sudo python3 /app/vpnBot/bot/main.py
+    command: python3 /app/vpnBot/bot/main.py
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
