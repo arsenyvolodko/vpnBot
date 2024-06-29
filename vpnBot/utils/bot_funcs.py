@@ -1,6 +1,10 @@
+import os
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from aiogram.types import CallbackQuery, FSInputFile, Message
+from dateutil.relativedelta import relativedelta
 from yookassa import Payment
 from yookassa.domain.response import PaymentResponse
 
@@ -16,7 +20,6 @@ from vpnBot.keyboards.keyboards import (
     get_back_to_main_menu_keyboard,
     get_main_menu_keyboard,
 )
-from vpnBot.utils.files import delete_file
 from wireguard_tools.wireguard_client import WireguardClient
 
 
@@ -136,3 +139,11 @@ def create_payment(value: int) -> PaymentResponse:
         }
     )
     return payment
+
+
+async def delete_file(path: Path):
+    if path.exists():
+        try:
+            os.remove(path)
+        except Exception:
+            pass

@@ -1,39 +1,20 @@
-import asyncio
-import logging
-
-from celery import shared_task
-from celery.schedules import crontab
-
 from celery_config import celery_app
-from server.models import MessageModel
-from vpnBot.payments import fill_up_balance
-from vpnBot.renew_subscription import main
-from vpnBot.send_message_to_everyone import send_message_to_all
-
-logger = logging.getLogger(__name__)
-
-
-celery_app.conf.update(
-    timezone="Europe/Moscow",
-    beat_schedule={
-        "periodic_task": {
-            "task": "vpnBot.celery_tasks.renew_subscription_task",
-            "schedule": crontab(hour="23", minute="55"),
-        },
-    },
-)
+from vpnBot.bot.main import loop
+from vpnBot.utils.payments import fill_up_balance
+from vpnBot.utils.renew_subscription import renew_subscription_func
+from vpnBot.utils.send_message_to_everyone import send_message_to_all
 
 
 @celery_app.task
 def renew_subscription_task():
-    asyncio.run(main())
+    loop.run_until_complete(renew_subscription_func())
 
 
-@shared_task
+@celery_app.task
+def send_message_to_everyone(message: dict):
+    loop.run_until_complete(send_message_to_all(message))
+
+
+@celery_app.task
 def process_payment(payment):
-    asyncio.run(fill_up_balance(payment))
-
-
-@shared_task
-def send_message_to_everyone(message: MessageModel):
-    asyncio.run(send_message_to_all(message))
+    loop.run_until_complete(fill_up_balance(payment))

@@ -49,8 +49,28 @@ _wg1_config.set_config(
     debug=DEBUG,
 )
 
-WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {"wg0": _wg0_config, "wg1": _wg1_config}
+WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {
+    "wg0": _wg0_config,
+    "wg1": _wg1_config,
+}
 
 # YOOKASSA
 YOOKASSA_OAUTH_TOKEN = os.environ.get("YOOKASSA_OAUTH_TOKEN")
 Configuration.configure_auth_token(YOOKASSA_OAUTH_TOKEN)
+
+ALLOWED_IPS = {
+    "127.0.0.1",
+    "localhost",
+    "192.168.65.1",
+    "185.71.76.0",
+    "185.71.76.0/27",
+    "185.71.77.0",
+    "185.71.77.0/27",
+    "77.75.153.0",
+    "77.75.153.0/25",
+    "77.75.156.11",
+    "77.75.156.35",
+    "77.75.154.128",
+    "77.75.154.128/25",
+    "2a02:5180::/32",
+}

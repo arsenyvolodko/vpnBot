@@ -8,6 +8,7 @@ from aiogram.types import FSInputFile, CallbackQuery, Message
 from vpnBot import config
 from vpnBot.consts import states
 from vpnBot.consts.common import *
+from vpnBot.consts.filters import MainMenuFilter
 from vpnBot.consts.states import ADDING_DEVICE_STATE
 from vpnBot.consts.texts_storage import *
 from vpnBot.db import db_manager
@@ -25,9 +26,8 @@ from vpnBot.utils.bot_funcs import (
     check_invitation,
     delete_message_or_delete_markup,
     create_payment,
+    delete_file,
 )
-from vpnBot.utils.files import delete_file
-from vpnBot.utils.filters import MainMenuFilter
 
 dp = Dispatcher()
 router = Router()

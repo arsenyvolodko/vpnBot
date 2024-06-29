@@ -1,6 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
-from fastapi import Request
 from celery_config import celery_app
 from server.middleware import IPFilterMiddleware
 from server.models.message_model import MessageModel

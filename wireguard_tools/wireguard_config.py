@@ -37,6 +37,7 @@ class WireguardConfig:
         self.public_key = WireguardKeys.generate_public_key(private_key)
         self.endpoint = endpoint
         self.config_path = config_path
+        self.sync_config_file_path = sync_config_file_path
         self.debug = kwargs.get("debug", False)
 
     async def add_client(self, client: WireguardClient):
@@ -78,11 +79,7 @@ class WireguardConfig:
         return new_data
 
     async def _sync_config(self):
-        try:
-            subprocess.check_call(
-                f"{self.sync_config_file_path} %s"
-                % (self.interface, ),
-                shell=True,
-            )
-        except Exception as e:
-            raise SyncConfigError(e)
+        subprocess.check_call(
+            f"{self.sync_config_file_path} %s" % (self.interface,),
+            shell=True,
+        )

@@ -7,7 +7,11 @@ services:
     volumes:
       - ${SOURCE_WG_CONFIGS_PATH}:${WG_CONFIGS_PATH}
     env_file:
-      - ./.env
+      - .env
+    command: /bin/sh -c "bash /app/wireguard_tools/up_wg_configs.sh && python3 /app/vpnBot/bot/main.py"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
 
   celery:
     build:

@@ -20,7 +20,9 @@ def _construct_keyboard(*args, **kwargs) -> InlineKeyboardMarkup:
     ]
     if kwargs.get("with_back_to_menu"):
         if kwargs.get("with_new_message"):
-            inline_keyboard.append([ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.get_button()])
+            inline_keyboard.append(
+                [ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.get_button()]
+            )
         else:
             inline_keyboard.append([ButtonsStorage.GO_BACK_TO_MAIN_MENU.get_button()])
     return types.InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
