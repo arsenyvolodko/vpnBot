@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart, CommandObject, Command
@@ -28,6 +28,7 @@ from vpnBot.utils.bot_funcs import (
     create_payment,
     delete_file,
 )
+from vpnBot.utils.date_util import get_next_date
 
 dp = Dispatcher()
 router = Router()
@@ -249,7 +250,7 @@ async def handle_get_transactions_query(call: CallbackQuery):
     user_id = call.from_user.id
     user: User = await db_manager.get_record(User, id=user_id)
     balance = user.balance
-    cur_time = datetime.datetime.now().strftime("%d.%m.%Y, %H:%M")
+    cur_time = get_next_date(start_date=datetime.now(), months_delta=0, hours_delta=3).strftime("%d.%m.%Y, %H:%M")
     text = TextsStorage.CURRENT_BALANCE.format(balance) + "\n\n"
     result = await db_manager.get_records(Transaction, user_id=user_id)
     for transaction in result:

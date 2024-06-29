@@ -1,9 +1,6 @@
-import asyncio
 import subprocess
 from pathlib import Path
 
-from wireguard_tools.exceptions import ClientNotFoundError
-from wireguard_tools.exceptions import SyncConfigError
 from wireguard_tools.wireguard_client import WireguardClient
 from wireguard_tools.wireguard_keys import WireguardKeys
 
