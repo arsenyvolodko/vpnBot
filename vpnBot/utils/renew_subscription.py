@@ -42,8 +42,6 @@ async def handle_delete_clients():
 
 
 async def renew_subscription_func():
-    print("ok")
-    return
     try:
         await handle_today_payments()
         await handle_delete_clients()
