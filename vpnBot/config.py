@@ -22,7 +22,8 @@ BOT_TG_URL = os.environ.get("BOT_URL")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 PATH_TO_CLIENTS_FILES = VPN_BOT_DIR / "tmp_client_files/"
-SYNC_CONFIG_FILE_PATH = WORK_DIR / "wireguard_tools/sync_config.sh"
+
+SYNC_CONFIG_FILE_PATH = Path(os.environ.get("SYNC_CONFIG_FILE_PATH"))
 
 WG_CONFIGS_PATH = Path(os.environ.get("WG_CONFIGS_PATH"))
 _WG0_CONFIG_PATH = WG_CONFIGS_PATH / "wg0.conf"
