@@ -140,7 +140,8 @@ class TextsStorage(ABC):
         "Ура! Теперь можно смотреть рилсы!\n\n"
         "см. также:\n"
         "1. <a href='https://www.notion.so/vpn-Wireguard-CyberNexVpn-a890908d8b854002b8842cfcb1f78de2'>Быстрое и удобное подключение vpn на Iphone</a>\n"
-        "2. <a href='https://www.notion.so/vpn-Wireguard-CyberNexVpn-a890908d8b854002b8842cfcb1f78de2?pvs=4#ac6c73a025344076aadc43df5f06034c'>Альтернативные способы подключения</a>\n"
+        "2. <a href='https://www.notion.so/vpn-Wireguard-CyberNexVpn-a890908d8b854002b8842cfcb1f78de2?pvs=4#ac6c73a025344076aadc43df5f06034c'>Альтернативные способы подключения</a>\n\n"
+        "p.s. если у вас android и не работает vpn при его добавлении через конфиг файл - используйте qr.\n"
         "Если что-то не выходит или не работает - напишите @arseny_volodko."
     )
 
