@@ -337,6 +337,15 @@ async def handle_fill_up_balance_factory_query(
     call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
     payment = create_payment(callback_data.value)
+    try:
+        payment.json()
+    except Exception:
+        await call.message.edit_text(
+            TextsStorage.YOOKASSA_ERROR_INFO_MSG,
+            reply_markup=get_back_to_main_menu_keyboard(),
+        )
+        return
+
     db_payment = Payment(
         id=payment.id,
         user_id=call.from_user.id,

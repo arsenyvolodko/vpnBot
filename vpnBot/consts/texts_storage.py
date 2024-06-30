@@ -143,3 +143,5 @@ class TextsStorage(ABC):
         "2. <a href='https://www.notion.so/vpn-Wireguard-CyberNexVpn-a890908d8b854002b8842cfcb1f78de2?pvs=4#ac6c73a025344076aadc43df5f06034c'>Альтернативные способы подключения</a>\n"
         "Если что-то не выходит или не работает - напишите @arseny_volodko."
     )
+
+    YOOKASSA_ERROR_INFO_MSG = "К сожалению, платежная система не отвечает, попробуйте повторить операцию через некоторое время."
