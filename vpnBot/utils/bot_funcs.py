@@ -1,10 +1,9 @@
 import os
-from datetime import datetime
+import uuid
 from pathlib import Path
 from typing import Any
 
 from aiogram.types import CallbackQuery, FSInputFile, Message
-from dateutil.relativedelta import relativedelta
 from yookassa import Payment
 from yookassa.domain.response import PaymentResponse
 
@@ -63,9 +62,11 @@ async def send_config_and_qr(
     config_file = await wg_client.gen_text_config(config.PATH_TO_CLIENTS_FILES)
     await delete_message_or_delete_markup(call.message)
 
+    file_name = str(uuid.uuid4())
+
     await call.bot.send_document(
         chat_id=call.from_user.id,
-        document=FSInputFile(config_file, filename=f"NexVpn{device_num}.conf"),
+        document=FSInputFile(config_file, filename=f"{file_name}.conf"),
     )
 
     await call.bot.send_photo(
