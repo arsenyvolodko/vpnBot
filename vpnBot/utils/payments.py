@@ -50,10 +50,16 @@ async def fill_up_balance(json_payment):
         if updated
         else TextsStorage.SOMETHING_WENT_VERY_WRONG_ERROR_MSG
     )
-
-    await bot.edit_message_text(
-        chat_id=db_payment.user_id,
-        message_id=db_payment.related_message_id,
-        text=text,
-        reply_markup=get_back_to_main_menu_keyboard(),
-    )
+    try:
+        await bot.edit_message_text(
+            chat_id=db_payment.user_id,
+            message_id=db_payment.related_message_id,
+            text=text,
+            reply_markup=get_back_to_main_menu_keyboard(),
+        )
+    except Exception:
+        await bot.send_message(
+            chat_id=db_payment.user_id,
+            text=text,
+            reply_markup=get_back_to_main_menu_keyboard(),
+        )
