@@ -336,9 +336,8 @@ async def handle_invitation_link_query(call: CallbackQuery):
 async def handle_fill_up_balance_factory_query(
     call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
-    payment = create_payment(callback_data.value)
     try:
-        payment.json()
+        payment = create_payment(callback_data.value)
     except Exception:
         await call.message.edit_text(
             TextsStorage.YOOKASSA_ERROR_INFO_MSG,
