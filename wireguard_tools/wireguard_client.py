@@ -32,7 +32,8 @@ class WireguardClient:
 
     async def gen_text_config(self, dir_path: Path) -> Path:
         file_path = await self._gen_path(dir_path, f"{self.name}.conf")
-        with file_path.open("w") as file:
+        # with file_path.open("w") as file:
+        with open(file_path, "w") as file:
             config_data = self._get_config()
             file.write(config_data)
         return file_path
