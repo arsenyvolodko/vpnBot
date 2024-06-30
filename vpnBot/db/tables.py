@@ -21,7 +21,7 @@ class User(Base):
         autoincrement=False,
     )
 
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(unique=True, nullable=True)
 
     balance: Mapped[int] = mapped_column(nullable=False, default=PRICE)
 
