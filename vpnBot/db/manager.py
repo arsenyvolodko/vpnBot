@@ -256,6 +256,11 @@ class DBManager:
     async def renew_subscription(
         self, client_id: int, user_id: int, end_date: datetime.date
     ):
+        client = await self.get_record(Client, id=client_id)
+        wg_client = await self._get_wg_client_by_client(client)
+        ips = await db_manager.get_record(Ips, client_id=client.id)
+        wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
+
         async with self.session_maker() as session:
             async with session.begin():
                 updated = await self.update_balance(
@@ -272,6 +277,7 @@ class DBManager:
                         .values(active=False)
                         .where(Client.id == client_id)
                     )
+                    await wg_config.remove_client(wg_client)
                     await session.execute(query)
                     await session.commit()
                     raise NotEnoughMoneyError()
