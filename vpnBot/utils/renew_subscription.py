@@ -23,13 +23,19 @@ async def handle_today_payments():
             await db_manager.renew_subscription(
                 client.id, client.user_id, new_payment_date
             )
-            logger.info(f"Subscription for user {client.user_id} for device {client.device_num} successfully renewed")
+            logger.info(
+                f"Subscription for user {client.user_id} for device {client.device_num} successfully renewed"
+            )
         except NotEnoughMoneyError:
             result = TextsStorage.SUBSCRIPTION_NOT_RENEWED
-            logger.info(f"Not enough money to renew subscription for user {client.user_id} for device {client.device_num}")
+            logger.info(
+                f"Not enough money to renew subscription for user {client.user_id} for device {client.device_num}"
+            )
         except Exception as e:
-            logger.error(f"Error during renewing subscription for user {client.user_id} for device {client.device_num}.\n"
-                         f"Traceback: {e}")
+            logger.error(
+                f"Error during renewing subscription for user {client.user_id} for device {client.device_num}.\n"
+                f"Traceback: {e}"
+            )
             continue
 
         await send_message_safety(bot, client.user_id, result.format(client.device_num))
@@ -41,7 +47,12 @@ async def handle_delete_clients():
         end_date=old_payment_date, activity_status=False
     )
     for client in clients_to_delete:
-        await db_manager.delete_client(client)
+        try:
+            await db_manager.delete_client(client)
+            logger.info(f"Deleting device by inspiration date. user: {client.user_id}, device: {client.device_num}.")
+        except Exception as e:
+            logger.error(f"Error during deleting device by inspiration date. user: {client.user_id}, device: {client.device_num}.\n"
+                         f"Traceback: {e}")
         await send_message_safety(
             bot, client.user_id, TextsStorage.INACTIVE_DEVICE_DELETED.format(client.id)
         )
@@ -53,4 +64,4 @@ async def renew_subscription_func():
         await handle_today_payments()
         await handle_delete_clients()
     except Exception as e:
-        print("exception:", type(e), e)
+        logger.error("Error during global renewing subscription. \n" f"Traceback: {e}")

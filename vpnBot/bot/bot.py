@@ -90,6 +90,7 @@ async def handle_main_menu_callback(call: CallbackQuery):
 @router.callback_query(F.data == ButtonsStorage.DEVICES.callback)
 async def handle_callback(call: CallbackQuery):
     user_devices = await db_manager.get_records(Client, user_id=call.from_user.id)
+    user_devices = sorted(user_devices, key=lambda x: x.device_num)
     await call.message.edit_text(
         text=(
             TextsStorage.CHOOSE_DEVICE
