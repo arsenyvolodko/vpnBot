@@ -1,3 +1,5 @@
+import logging
+
 from vpnBot.db.manager import db_manager
 from server.models import MessageModel
 from vpnBot.bot.main import bot
@@ -5,6 +7,8 @@ from vpnBot.config import MY_TG_ID
 from vpnBot.db.tables import User
 from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
 from vpnBot.utils.bot_funcs import send_message_safety
+
+logger = logging.getLogger()
 
 
 async def send_message_to_all(message: dict):
@@ -20,9 +24,13 @@ async def send_message_to_all(message: dict):
         return
     users = await db_manager.get_records(User)
     for user in users:
-        await send_message_safety(
+        sent = await send_message_safety(
             bot,
             user.id,
             text=message_model.text,
             reply_markup=get_back_to_main_menu_keyboard(with_new_message=True),
         )
+        if sent:
+            logger.info(f"Message successfully sent to user {user}")
+        else:
+            logger.error(f"Error while sending message to user {user}")

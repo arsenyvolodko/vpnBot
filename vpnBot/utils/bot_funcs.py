@@ -22,11 +22,12 @@ from vpnBot.keyboards.keyboards import (
 from wireguard_tools.wireguard_client import WireguardClient
 
 
-async def send_message_safety(bot, user_id: int, text: str, **kwargs):
+async def send_message_safety(bot, user_id: int, text: str, **kwargs) -> bool:
     try:
         await bot.send_message(text=text, chat_id=user_id, **kwargs)
+        return True
     except Exception:
-        pass
+        return False
 
 
 async def delete_message_or_delete_markup(message: Message):

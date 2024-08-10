@@ -309,8 +309,13 @@ class DBManager:
                 if not balance_updated:
                     raise NotEnoughMoneyError()
 
-                client.active = True
-                client.end_date = get_next_date()
+                # noinspection PyTypeChecker
+                query = (
+                    update(Client)
+                    .values(active=True, end_date = get_next_date())
+                    .where(Client.id == client_id)
+                )
+                await session.execute(query)
 
                 wg_config = config.WIREGUARD_CONFIG_MAP[ips.interface]
                 wg_client = WireguardClient(

@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Dict
@@ -6,6 +7,8 @@ from dotenv import load_dotenv
 from yookassa import Configuration
 
 from wireguard_tools.wireguard_config import WireguardConfig
+
+logger = logging.getLogger(name='service logger')
 
 MY_TG_ID = 506954303
 
@@ -16,10 +19,14 @@ load_dotenv(WORK_DIR / ".env")
 
 DEBUG = os.environ.get("DEBUG") == "True"
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-BOT_TG_URL = os.environ.get("BOT_URL")
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
+if DEBUG:
+    BOT_TOKEN = os.environ.get("TEST_BOT_TOKEN")
+    BOT_TG_URL = os.environ.get("TEST_BOT_URL")
+    DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+else:
+    BOT_TOKEN = os.environ.get("BOT_TOKEN")
+    BOT_TG_URL = os.environ.get("BOT_URL")
+    DATABASE_URL = os.environ.get("DATABASE_URL")
 
 PATH_TO_CLIENTS_FILES = VPN_BOT_DIR / "tmp_client_files/"
 

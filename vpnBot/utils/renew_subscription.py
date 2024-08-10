@@ -1,6 +1,7 @@
 import datetime
 
 from vpnBot.bot.main import bot
+from vpnBot.config import logger
 from vpnBot.db import db_manager
 from vpnBot.exceptions.clients import NotEnoughMoneyError
 from vpnBot.consts.texts_storage import TextsStorage
@@ -13,6 +14,7 @@ async def handle_today_payments():
     clients_to_pay_today = await db_manager.get_clients_by_end_date(
         end_date=cur_date, activity_status=True
     )
+    logger.info(f"Clients to pay today: {clients_to_pay_today}")
     new_payment_date: datetime.date = get_next_date(start_date=cur_date)
 
     for client in clients_to_pay_today:
@@ -21,10 +23,14 @@ async def handle_today_payments():
             await db_manager.renew_subscription(
                 client.id, client.user_id, new_payment_date
             )
+            logger.info(f"Subscription for user {client.user_id} for device {client.device_num} successfully renewed")
         except NotEnoughMoneyError:
             result = TextsStorage.SUBSCRIPTION_NOT_RENEWED
-        except Exception:
-            return
+            logger.info(f"Not enough money to renew subscription for user {client.user_id} for device {client.device_num}")
+        except Exception as e:
+            logger.error(f"Error during renewing subscription for user {client.user_id} for device {client.device_num}.\n"
+                         f"Traceback: {e}")
+            continue
 
         await send_message_safety(bot, client.user_id, result.format(client.device_num))
 
@@ -42,6 +48,7 @@ async def handle_delete_clients():
 
 
 async def renew_subscription_func():
+    logger.info("Started daily subscription checking")
     try:
         await handle_today_payments()
         await handle_delete_clients()

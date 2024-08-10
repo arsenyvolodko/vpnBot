@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, CallbackQuery, Message
 
 from vpnBot import config
+from vpnBot.config import logger
 from vpnBot.consts import states
 from vpnBot.consts.common import *
 from vpnBot.consts.filters import MainMenuFilter
@@ -226,7 +227,10 @@ async def handle_resume_device_subscription_query(
             text = TextsStorage.DEVICE_SUBSCRIPTION_SUCCESSFULLY_RESUMED
         except ClientBaseError as e:
             text = e.message
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"Error during activating device #{client.device_num} for user {client.user_id}.\n"
+                f"Traceback: {e}")
             text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
     else:
         text = TextsStorage.DEVICE_SUBSCRIPTION_ALREADY_ACTIVE

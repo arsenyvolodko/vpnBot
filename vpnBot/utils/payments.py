@@ -1,4 +1,5 @@
 import time
+import logging
 
 from yookassa.domain.notification import WebhookNotification
 
@@ -8,6 +9,8 @@ from vpnBot.db import db_manager
 from vpnBot.db.tables import Payment
 from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum, PaymentStatusEnum
 from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
+
+logger = logging.getLogger()
 
 
 async def update(db_payment: Payment) -> bool:
@@ -25,6 +28,7 @@ async def fill_up_balance(json_payment):
 
     updated = await update(db_payment)
     if not updated:
+        logger.error(f"Error filling balance for user {db_payment.user_id} for {db_payment.value}, trying again.")
         await bot.edit_message_text(
             chat_id=db_payment.user_id,
             message_id=db_payment.related_message_id,
@@ -35,10 +39,12 @@ async def fill_up_balance(json_payment):
 
     try:
         if updated:
+            logger.info(f"User {db_payment.user_id} successfully fill balance for {db_payment.value}.")
             await db_manager.update_payment_status(
                 payment.id, PaymentStatusEnum.SUCCEEDED
             )
         else:
+            logger.error(f"Error filling balance for user {db_payment.user_id} for {db_payment.value}.")
             await db_manager.update_payment_status(
                 payment.id, PaymentStatusEnum.CANCELED
             )
