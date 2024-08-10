@@ -127,7 +127,9 @@ async def add_device_confirmed(call: CallbackQuery, state: FSMContext):
         return
     except ClientBaseError as e:
         text = e.message
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error during adding device for user {call.from_user.id}.\n"
+                     f"Traceback: {e}")
         text = TextsStorage.SOMETHING_WENT_WRONG_ERROR_MSG
     finally:
         await state.clear()

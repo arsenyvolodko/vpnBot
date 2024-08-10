@@ -1,14 +1,10 @@
-import logging
-
 from vpnBot.db.manager import db_manager
 from server.models import MessageModel
 from vpnBot.bot.main import bot
-from vpnBot.config import MY_TG_ID
+from vpnBot.config import MY_TG_ID, logger
 from vpnBot.db.tables import User
 from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
 from vpnBot.utils.bot_funcs import send_message_safety
-
-logger = logging.getLogger()
 
 
 async def send_message_to_all(message: dict):
