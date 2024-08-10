@@ -118,7 +118,7 @@ class DBManager:
                 # noinspection PyTypeChecker
                 devices_query = select(Client).where(Client.user_id == user_id)
                 devices_result = await session.execute(devices_query)
-                devices = sorted(list(devices_result.scalars().all()))
+                devices = sorted(list(devices_result.scalars().all()), key=lambda x: x.device_num)
 
                 if len(devices) == DEVICES_MAX_AMOUNT:
                     raise DevicesLimitError()
