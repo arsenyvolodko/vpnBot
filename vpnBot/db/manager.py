@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 
 from sqlalchemy import select, null, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -327,6 +328,22 @@ class DBManager:
                 )
                 await wg_config.add_client(wg_client)
                 await session.commit()
+
+    async def get_users_clients_by_end_date(self, end_date: datetime.date) -> dict[User, list[Client]]:
+        async with self.session_maker() as session:
+            async with session.begin():
+                result = (
+                    session.query(User, Client)
+                    .join(Client, User.id == Client.user_id)
+                    .filter(Client.end_date == end_date)
+                    .all()
+                )
+
+                user_client_dict = defaultdict(list)
+                for user, client in result:
+                    user_client_dict[user].append(client)
+
+                return user_client_dict
 
     async def update_payment_status(self, payment_id: int, status: PaymentStatusEnum):
         async with self.session_maker() as session:
