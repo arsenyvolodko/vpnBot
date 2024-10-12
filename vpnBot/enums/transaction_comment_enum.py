@@ -8,3 +8,4 @@ class TransactionCommentEnum(Enum):
     FILL_UP_BALANCE = "Пополнение баланса"
     ADD_DEVICE = "Добавление устройства"
     PROMO_CODE = "Применение промокода"
+    UPDATED_BY_ADMIN = "Изменено администратором"
