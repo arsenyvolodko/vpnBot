@@ -54,6 +54,8 @@ async def welcome_message(message: Message, command: CommandObject):
         )
         await db_manager.add_record(new_transaction)
 
+    await db_manager.add_username_if_not_exists(message.from_user.id, message.from_user.username)
+
     await message.answer(
         TextsStorage.START_TEXT, reply_markup=get_start_keyboard(from_start=True)
     )
@@ -69,6 +71,7 @@ async def handle_main_menu_callback(message: Message):
 
 @router.callback_query(MainMenuFilter())
 async def handle_main_menu_callback(call: CallbackQuery):
+    await db_manager.add_username_if_not_exists(call.from_user.id, call.from_user.username)
     text = (
         TextsStorage.MAIN_MENU_TEXT_FROM_START
         if call.data == ButtonsStorage.GO_TO_MAIN_MENU_FROM_START.callback
@@ -89,6 +92,7 @@ async def handle_main_menu_callback(call: CallbackQuery):
 
 @router.callback_query(F.data == ButtonsStorage.DEVICES.callback)
 async def handle_callback(call: CallbackQuery):
+    await db_manager.add_username_if_not_exists(call.from_user.id, call.from_user.username)
     user_devices = await db_manager.get_records(Client, user_id=call.from_user.id)
     user_devices = sorted(user_devices, key=lambda x: x.device_num)
     await call.message.edit_text(
@@ -105,6 +109,7 @@ async def handle_callback(call: CallbackQuery):
 
 @router.callback_query(F.data == ButtonsStorage.ADD_DEVICE.callback)
 async def handle_query(call: CallbackQuery):
+    await db_manager.add_username_if_not_exists(call.from_user.id, call.from_user.username)
     user_balance = await get_user_balance(call.from_user.id)
     await call.message.edit_text(
         text=TextsStorage.ADD_DEVICE_CONFIRMATION_INFO.format(PRICE, user_balance),
@@ -244,6 +249,7 @@ async def handle_resume_device_subscription_query(
 
 @router.callback_query(F.data == ButtonsStorage.FINANCE.callback)
 async def handle_finance_callback_query(call: CallbackQuery):
+    await db_manager.add_username_if_not_exists(call.from_user.id, call.from_user.username)
     user_id = call.from_user.id
     user = await db_manager.get_record(User, id=user_id)
     await call.message.edit_text(
@@ -295,6 +301,7 @@ async def handle_fill_up_balance_query(call: CallbackQuery):
 
 @router.callback_query(F.data == ButtonsStorage.PROMO_CODE.callback)
 async def handle_promo_code_query(call: CallbackQuery, state: FSMContext):
+    await db_manager.add_username_if_not_exists(call.from_user.id, call.from_user.username)
     await state.set_state(states.PROMO_CODE_EXPECTING_STATE)
     await state.set_data({"message": call.message})
     await call.message.edit_text(
@@ -345,7 +352,9 @@ async def handle_fill_up_balance_factory_query(
 ):
     try:
         payment = create_payment(callback_data.value)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error during creating payment for user {call.from_user.id}."
+                     f"Error: {e}")
         await call.message.edit_text(
             TextsStorage.YOOKASSA_ERROR_INFO_MSG,
             reply_markup=get_back_to_main_menu_keyboard(),

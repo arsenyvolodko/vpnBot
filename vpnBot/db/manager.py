@@ -335,5 +335,13 @@ class DBManager:
                 payment.status = status
                 await session.commit()
 
+    async def add_username_if_not_exists(self, user_id: int, username: str):
+        async with self.session_maker() as session:
+            async with session.begin():
+                user: User = await self.get_record(User, id=user_id)
+                if not user.username:
+                    user.username = username
+                    await session.commit()
+
 
 db_manager = DBManager()
