@@ -138,6 +138,7 @@ def create_payment(value: int) -> PaymentResponse:
             },
             "capture": True,
             "description": f"Пополнение баланса на {value} рублей",
+            "customer": {"email": "arvolodko@gmail.com"},
         }
     )
     return payment
