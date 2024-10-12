@@ -331,14 +331,19 @@ class DBManager:
     async def update_payment_status(self, payment_id: int, status: PaymentStatusEnum):
         async with self.session_maker() as session:
             async with session.begin():
-                payment: Payment = await self.get_record(Payment, id=payment_id)
-                payment.status = status
-                await session.commit()
+                query = (
+                    update(Payment)
+                    .values(status=status.name)
+                    .where(Payment.id == payment_id)
+                )
+                await session.execute(query)
 
     async def add_username_if_not_exists(self, user_id: int, username: str):
         async with self.session_maker() as session:
             async with session.begin():
-                user: User = await self.get_record(User, id=user_id)
+                query = select(User).where(User.id == user_id).with_for_update()
+                result = await session.execute(query)
+                user = result.scalars().first()
                 if not user.username:
                     user.username = username
                     await session.commit()
