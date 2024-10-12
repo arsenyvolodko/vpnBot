@@ -23,10 +23,14 @@ if DEBUG:
     BOT_TOKEN = os.environ.get("TEST_BOT_TOKEN")
     BOT_TG_URL = os.environ.get("TEST_BOT_URL")
     DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+    SERVER_PRIVATE_KEY = os.environ.get("TEST_WG0_SERVER_PRIVATE_KEY")
+    SERVER_ENDPOINT = os.environ.get("TEST_WG0_SERVER_ENDPOINT")
 else:
     BOT_TOKEN = os.environ.get("BOT_TOKEN")
     BOT_TG_URL = os.environ.get("BOT_URL")
     DATABASE_URL = os.environ.get("DATABASE_URL")
+    SERVER_PRIVATE_KEY = os.environ.get("WG0_SERVER_PRIVATE_KEY")
+    SERVER_ENDPOINT = os.environ.get("WG0_SERVER_ENDPOINT")
 
 PATH_TO_CLIENTS_FILES = VPN_BOT_DIR / "tmp_client_files/"
 
@@ -34,32 +38,20 @@ SYNC_CONFIG_FILE_PATH = Path(os.environ.get("SYNC_CONFIG_FILE_PATH"))
 
 WG_CONFIGS_PATH = Path(os.environ.get("WG_CONFIGS_PATH"))
 _WG0_CONFIG_PATH = WG_CONFIGS_PATH / "wg0.conf"
-# _WG1_CONFIG_PATH = WG_CONFIGS_PATH / "wg1.conf"
 
 _wg0_config = WireguardConfig()
-# _wg1_config = WireguardConfig()
 
 _wg0_config.set_config(
     interface="wg0",
-    private_key=os.environ.get("WG0_SERVER_PRIVATE_KEY"),
-    endpoint=os.environ.get("WG0_SERVER_ENDPOINT"),
+    private_key=SERVER_PRIVATE_KEY,
+    endpoint=SERVER_ENDPOINT,
     config_path=_WG0_CONFIG_PATH,
     sync_config_file_path=SYNC_CONFIG_FILE_PATH,
     debug=DEBUG,
 )
 
-# _wg1_config.set_config(
-#     interface="wg1",
-#     private_key=os.environ.get("WG1_SERVER_PRIVATE_KEY"),
-#     endpoint=os.environ.get("WG1_SERVER_ENDPOINT"),
-#     config_path=_WG1_CONFIG_PATH,
-#     sync_config_file_path=SYNC_CONFIG_FILE_PATH,
-#     debug=DEBUG,
-# )
-
 WIREGUARD_CONFIG_MAP: Dict[str, WireguardConfig] = {
     "wg0": _wg0_config,
-    # "wg1": _wg1_config,
 }
 
 # YOOKASSA
