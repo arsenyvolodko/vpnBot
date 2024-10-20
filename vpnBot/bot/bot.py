@@ -41,10 +41,14 @@ async def welcome_message(message: Message, command: CommandObject):
     user = await db_manager.get_record(User, id=message.from_user.id)
 
     if not user:
+        extra_kwargs = {}
         if inviter_id := command.args:
-            await check_invitation(message, inviter_id)
+            if await check_invitation(message, inviter_id):
+                extra_kwargs['inviter_id'] = inviter_id
 
-        new_user = User(id=message.from_user.id, username=message.from_user.username)
+        join_date = datetime.now().date()
+        new_user = User(id=message.from_user.id, username=message.from_user.username, join_date=join_date,
+                        **extra_kwargs)
         user = await db_manager.add_record(new_user)
         new_transaction = Transaction(
             user_id=user.id,

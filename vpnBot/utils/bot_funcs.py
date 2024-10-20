@@ -105,7 +105,7 @@ def generate_invitation_link(user_id: int) -> str:
     return f"{config.BOT_TG_URL}?start={user_id}"
 
 
-async def check_invitation(message: Message, inviter_id: Any) -> None:
+async def check_invitation(message: Message, inviter_id: Any) -> bool | None:
     try:
         inviter_id = int(inviter_id)
         inviter = await db_manager.get_record(User, id=inviter_id)
@@ -124,6 +124,9 @@ async def check_invitation(message: Message, inviter_id: Any) -> None:
             text=TextsStorage.SUCCESSFUL_INVITATION_INFO_MSG,
             reply_markup=get_back_to_main_menu_keyboard(),
         )
+
+        return True
+
     except ValueError:
         return
 
