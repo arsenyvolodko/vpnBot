@@ -277,9 +277,9 @@ class DBManager:
                         .values(active=False)
                         .where(Client.id == client_id)
                     )
-                    await wg_config.remove_client(wg_client)
                     await session.execute(query)
                     await session.commit()
+                    await wg_config.remove_client(wg_client)
                     raise NotEnoughMoneyError()
                 # noinspection PyTypeChecker
                 query = (

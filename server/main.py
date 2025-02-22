@@ -1,4 +1,7 @@
+import logging
+
 from fastapi import FastAPI, Request
+from datetime import datetime
 
 from celery_config import celery_app
 from server.middleware import IPFilterMiddleware
@@ -8,10 +11,13 @@ app = FastAPI()
 
 app.add_middleware(IPFilterMiddleware)
 
+logger = logging.getLogger(__name__)
 
 @app.post("/api/v1/payment_succeeded/", status_code=200)
 async def search_track(request: Request):
     payment_json = await request.json()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"{now} - " + "Payment succeeded: %s", payment_json)
     celery_app.send_task("vpnBot.celery_tasks.process_payment", args=[payment_json])
 
 
