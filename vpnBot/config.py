@@ -60,6 +60,7 @@ Configuration.configure_auth_token(YOOKASSA_OAUTH_TOKEN)
 
 ALLOWED_IPS = {
     "172.18.0.1",
+    "172.21.0.1",
     "127.0.0.1",
     "localhost",
     "192.168.65.1",
