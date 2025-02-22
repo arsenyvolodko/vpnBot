@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/usr/src/app
-    command: uvicorn server.main:app --host 0.0.0.0 --port ${FAST_API_PORT}
+    command: uvicorn server.main:app --host 0.0.0.0 --port ${FAST_API_PORT} --log-level debug
     depends_on:
       - redis
     ports:
