@@ -1,6 +1,6 @@
 import datetime
 
-from vpnBot.bot.main import bot
+from cybernexvpn_bot.bot import bot
 from vpnBot.config import logger
 from vpnBot.db import db_manager
 from vpnBot.exceptions.clients import NotEnoughMoneyError

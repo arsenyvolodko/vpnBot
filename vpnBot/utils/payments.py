@@ -3,7 +3,7 @@ import logging
 
 from yookassa.domain.notification import WebhookNotification
 
-from vpnBot.bot.main import bot
+from cybernexvpn_bot.bot import bot
 from vpnBot.consts.texts_storage import TextsStorage
 from vpnBot.db import db_manager
 from vpnBot.db.tables import Payment

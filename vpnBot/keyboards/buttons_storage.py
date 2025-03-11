@@ -17,17 +17,24 @@ class ButtonsTextStorage(ABC):
     WG_APP_IOS = "IOS"
     WG_APP_PC = "PC"
 
+    SERVER = "Сервер"
+    SERVERS = "Серверы"
+
     DEVICES = "Устройства 📱"
-    FINANCE = "Финансы 💳"
-    PROMO_CODE = "Применить промокод"
-    INVITATION_LINK = "Пригласительные ссылки"
+    FINANCE = "Финансы 💸"
+    PROMO_CODE = "Применить промокод ✏️"
+    INVITATION_LINK = "Пригласительные ссылки 💌"
 
     DEVICE = "Устройство №{}"
+    EDIT_DEVICE = "Редактировать"
     ADD_DEVICE = "Добавить устройство"
     ADD_DEVICE_CONFIRMATION = "Продолжить"
 
-    GET_DEVICES_CONFIG_AND_QR = "Получить конфиг и qr + инструкция"
-    DELETE_DEVICE = "Удалить устройство"
+    EDIT_DEVICE_AUTO_RENEW = "Авто-продление: {}"
+    EDIT_DEVICE_NAME = "Переименовать ✏️"
+    EDIT_DEVICE_TYPE = "Изменить тип устройства 📱-> 💻"
+    GET_DEVICES_CONFIG_AND_QR = "Данные для подключения"
+    DELETE_DEVICE = "Удалить устройство 🗑"
     DELETE_DEVICE_CONFIRMATION = "Продолжить"
 
     GET_TRANSACTIONS_HISTORY = "История транзакций"
@@ -35,7 +42,7 @@ class ButtonsTextStorage(ABC):
 
     FILL_UP_BALANCE_VALUE = ""
 
-    RESUME_DEVICE_SUBSCRIPTION = "Возобновить подписку"
+    REACTIVATE_DEVICE = "Возобновить подписку"
 
 
 class AutoNameButtonMeta(type):
@@ -68,10 +75,17 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
     PROMO_CODE = Button()
     INVITATION_LINK = Button()
 
+    SERVER = Button()
+    SERVERS = Button()
+
     DEVICE = Button()
+    EDIT_DEVICE = Button()
     ADD_DEVICE = Button()
     ADD_DEVICE_CONFIRMATION = Button()
 
+    EDIT_DEVICE_AUTO_RENEW = Button()
+    EDIT_DEVICE_NAME = Button()
+    EDIT_DEVICE_TYPE = Button()
     GET_DEVICES_CONFIG_AND_QR = Button()
     DELETE_DEVICE = Button()
     DELETE_DEVICE_CONFIRMATION = Button()
@@ -80,4 +94,4 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
     FILL_UP_BALANCE = Button()
 
     FILL_UP_BALANCE_VALUE = Button()
-    RESUME_DEVICE_SUBSCRIPTION = Button()
+    REACTIVATE_DEVICE = Button()

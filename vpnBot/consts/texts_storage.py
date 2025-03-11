@@ -1,31 +1,13 @@
 from abc import ABC
 
-from vpnBot.consts.common import PRICE, INVITATION_BONUS
-
 
 class TextsStorage(ABC):
-    START_TEXT = (
-        "Привет! Этот бот предоставляет доступ к быстрому и стабильному vpn.\n"
-        f"На вашем балансе {PRICE}₽, чтобы Вы могли попробовать первый месяц бесплатно.\n\n"
-        'Для начала, нужно скачать приложение Wireguard (по ссылке снизу), вернуться в бота и нажать на кнопку "Перейти в меню" на клавиатуре ниже.'
-    )
 
     WG_APP_ANDROID_LINK = (
         "https://play.google.com/store/apps/details?id=com.wireguard.android"
     )
     WG_APP_IOS_LINK = "https://apps.apple.com/us/app/wireguard/id1441195209"
     WG_APP_PC_LINK = "https://www.wireguard.com/install/"
-
-    MAIN_MENU_TEXT_FROM_START = 'Отлично!\nТеперь, чтобы подключить vpn, нажми на кнопку "Устройста" в меню ниже, а затем на кнопку "Добавить устройство".'
-
-    MAIN_MENU_TEXT = (
-        "Меню\n"
-        'Для добавления нового устройства или удаления существующего, перейдите в раздел "Устройства".\n'
-        'Для пополнения баланса или просмотра истории транзакций, перейдите в раздел "Финансы".'
-    )
-
-    CHOOSE_DEVICE = "Выберите устройство:"
-    NO_DEVICES_ADDED = "У Вас пока нет добавленных устройств."
 
     ADD_DEVICE_CONFIRMATION_INFO = (
         "После добавления устройства с вашего счета автоматически спишется сумма, "
@@ -64,22 +46,18 @@ class TextsStorage(ABC):
 
     ACTUAL_ON_MOMENT = "Актуально на момент: {}"
 
-    ON_YOUR_ACCOUNT = "На вашем счете: {}₽."
-
-    CHOOSE_SUM_TO_FILL_UP_BALANCE = "Выберите, на какую сумму пополнить баланс."
-
-    INPUT_PROMO_CODE = "Введите промокод."
+    INPUT_PROMO_CODE = "Введи промокод"
 
     PROMO_CODE_SUCCESSFULLY_APPLIED = (
-        "Промокод успешно применен. Ваш баланс пополнен на {}₽."
+        "Промокод успешно применен.  баланс пополнен на {}₽."
     )
 
     # EXCEPTIONS
 
-    NOT_ENOUGH_MONEY_ERROR_MSG = (
-        "На вашем счете недостаточно средств для подключения нового устройства.\n"
-        f"Стоимость подписки: {PRICE}₽ в месяц."
-    )
+    # NOT_ENOUGH_MONEY_ERROR_MSG = (
+    #     "На вашем счете недостаточно средств для подключения нового устройства.\n"
+    #     f"Стоимость подписки: {PRICE}₽ в месяц."
+    # )
 
     NO_AVAILABLE_IPS_ERROR_MSG = (
         "К сожалению, на данный момент на сервере закончились свободные IP адреса. "
@@ -96,19 +74,19 @@ class TextsStorage(ABC):
 
     PROMO_CODE_INACTIVE_ERROR_MSG = "Данный промокод более недействителен."
 
-    INVITATION_LINK_INFO_MSG = (
-        f"Вы можете пригласить друзей и получить {INVITATION_BONUS}₽ за каждого нового пользователя, "
-        "перешедшего по вашей пригласительной ссылке: {}"
-    )
-
-    SUCCESSFUL_INVITATION_INFO_MSG = (
-        f"Вам начислено {INVITATION_BONUS}₽ за приглашение нового пользователя."
-    )
-
-    SUBSCRIPTION_SUCCESSFULLY_RENEWED = (
-        "Подписка на устройство №{} успешно продлена.\n"
-        f"С вашего счета списано {PRICE}₽."
-    )
+    # INVITATION_LINK_INFO_MSG = (
+    #     f"Вы можете пригласить друзей и получить {INVITATION_BONUS}₽ за каждого нового пользователя, "
+    #     "перешедшего по вашей пригласительной ссылке: {}"
+    # )
+    #
+    # SUCCESSFUL_INVITATION_INFO_MSG = (
+    #     f"Вам начислено {INVITATION_BONUS}₽ за приглашение нового пользователя."
+    # )
+    #
+    # SUBSCRIPTION_SUCCESSFULLY_RENEWED = (
+    #     "Подписка на устройство №{} успешно продлена.\n"
+    #     f"С вашего счета списано {PRICE}₽."
+    # )
 
     SUBSCRIPTION_NOT_RENEWED = (
         "Доступ к VPN для устройства №{} приостановлен из-за нехватки средств на счете для продления подписки.\n"

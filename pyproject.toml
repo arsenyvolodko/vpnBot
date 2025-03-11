@@ -20,6 +20,7 @@ aiogram = "^3.5.0"
 greenlet = "^3.0.3"
 celery = "^5.4.0"
 redis = "^5.0.6"
+django = "^5.1.7"
 
 [tool.poetry.dev-dependencies]
 
