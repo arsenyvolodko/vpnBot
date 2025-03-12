@@ -1,0 +1,6 @@
+.idea/
+.debug/
+.DS_Store/
+.DS_Store
+__pycache__/
+.git

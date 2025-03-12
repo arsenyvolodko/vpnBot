@@ -1,0 +1,39 @@
+openapi: 3.0.1
+info:
+  title: Wireguard Server
+  version: '1.0'
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /api/v1/send-message/:
+    parameters:
+      - name: x-api-key
+        in: header
+        description: API Key for authentication
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Send message to users
+      tags:
+        - message
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        200:
+          description: Message sent
+
+components:
+  schemas:
+    SendMessageRequest:
+      required:
+        - text
+      properties:
+        text:
+            type: string
+        only_to_me:
+            type: boolean
+            default: true

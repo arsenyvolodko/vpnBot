@@ -1,9 +1,9 @@
 from vpnBot.db.manager import db_manager
 from server.models import MessageModel
-from cybernexvpn_bot.bot import bot
+from cybernexvpn.cybernexvpn_bot.bot import bot
 from vpnBot.config import MY_TG_ID, logger
 from vpnBot.db.tables import User
-from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
+from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import get_back_to_main_menu_keyboard
 from vpnBot.utils.bot_funcs import send_message_safety
 
 

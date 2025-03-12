@@ -15,7 +15,7 @@ from vpnBot.db import db_manager
 from vpnBot.db.tables import User, Transaction, Client, Ips
 from vpnBot.enums import TransactionCommentEnum
 from vpnBot.enums.operation_type_enum import OperationTypeEnum
-from vpnBot.keyboards.keyboards import (
+from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import (
     get_back_to_main_menu_keyboard,
     get_main_menu_keyboard,
 )

@@ -3,12 +3,12 @@ import logging
 
 from yookassa.domain.notification import WebhookNotification
 
-from cybernexvpn_bot.bot import bot
+from cybernexvpn.cybernexvpn_bot.bot import bot
 from vpnBot.consts.texts_storage import TextsStorage
 from vpnBot.db import db_manager
 from vpnBot.db.tables import Payment
 from vpnBot.enums import OperationTypeEnum, TransactionCommentEnum, PaymentStatusEnum
-from vpnBot.keyboards.keyboards import get_back_to_main_menu_keyboard
+from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import get_back_to_main_menu_keyboard
 
 logger = logging.getLogger()
 

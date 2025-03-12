@@ -1,5 +1,5 @@
 from celery_config import celery_app
-from cybernexvpn_bot.bot import loop
+from cybernexvpn.cybernexvpn_bot.bot import loop
 from vpnBot.utils.payments import fill_up_balance
 from vpnBot.utils.renew_subscription import renew_subscription_func
 from vpnBot.utils.send_message_to_everyone import send_message_to_all
