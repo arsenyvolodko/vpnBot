@@ -9,6 +9,7 @@ from cybernexvpn.cybernexvpn_bot.config import BOT_TOKEN
 
 async def main() -> None:
     from cybernexvpn.cybernexvpn_bot.bot.bot import dp
+
     await dp.start_polling(bot)
 
 

@@ -13,7 +13,10 @@ from cybernexvpn.cybernexvpn_bot.bot.keyboards.buttons_storage import ButtonsSto
 from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.factories import (
     FillUpBalanceFactory,
-    DevicesCallbackFactory, ServersCallbackFactory, AddDeviceFactory, EditDeviceTypeCallbackFactory,
+    DevicesCallbackFactory,
+    ServersCallbackFactory,
+    AddDeviceFactory,
+    EditDeviceTypeCallbackFactory,
 )
 
 
@@ -34,10 +37,17 @@ def _construct_keyboard(*args, **kwargs) -> InlineKeyboardMarkup:
 
 def get_choose_device_type_keyboard(**kwargs) -> InlineKeyboardMarkup:
     if server := kwargs.get("server"):
-        builder = _get_choose_device_type_util(server, AddDeviceFactory, ButtonsStorage.SERVER, AddDeviceFactory)
+        builder = _get_choose_device_type_util(
+            server, AddDeviceFactory, ButtonsStorage.SERVER, AddDeviceFactory
+        )
     else:
         client = kwargs.get("client")
-        builder = _get_choose_device_type_util(client, EditDeviceTypeCallbackFactory,  ButtonsStorage.DEVICE, DevicesCallbackFactory)
+        builder = _get_choose_device_type_util(
+            client,
+            EditDeviceTypeCallbackFactory,
+            ButtonsStorage.DEVICE,
+            DevicesCallbackFactory,
+        )
 
     builder.button(
         text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
@@ -48,10 +58,10 @@ def get_choose_device_type_keyboard(**kwargs) -> InlineKeyboardMarkup:
 
 
 def _get_choose_device_type_util(
-        obj_with_id: BaseModel,
-        type_factory: type[CallbackData],
-        return_button: Button,
-        return_factory: type[CallbackData]
+    obj_with_id: BaseModel,
+    type_factory: type[CallbackData],
+    return_button: Button,
+    return_factory: type[CallbackData],
 ):
     builder = InlineKeyboardBuilder()
 
@@ -62,9 +72,8 @@ def _get_choose_device_type_util(
         builder.button(
             text=client_type.label,  # noqa
             callback_data=type_factory(
-                id=obj_with_id.id,
-                type=client_type.value  # noqa
-            )
+                id=obj_with_id.id, type=client_type.value  # noqa
+            ),
         )
 
     builder.button(
@@ -98,7 +107,8 @@ def get_servers_keyboard(servers: list[schemas.Server]) -> InlineKeyboardMarkup:
         builder.button(
             text=server.name,
             callback_data=ServersCallbackFactory(
-                callback=ButtonsStorage.SERVER.callback, id=server.id,
+                callback=ButtonsStorage.SERVER.callback,
+                id=server.id,
             ),
         )
     builder.button(
@@ -119,7 +129,8 @@ def get_devices_keyboard(clients: list[schemas.Client]) -> InlineKeyboardMarkup:
         builder.button(
             text=_get_client_button_text(client),
             callback_data=DevicesCallbackFactory(
-                callback=ButtonsStorage.DEVICE.callback, id=client.id,
+                callback=ButtonsStorage.DEVICE.callback,
+                id=client.id,
             ),
         )
     builder.button(
@@ -154,7 +165,9 @@ def get_add_device_confirmation_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def get_delete_device_confirmation_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
+def get_delete_device_confirmation_keyboard(
+    client: schemas.Client,
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(
         text=ButtonsStorage.DELETE_DEVICE_CONFIRMATION.text,
@@ -166,13 +179,12 @@ def get_delete_device_confirmation_keyboard(client: schemas.Client) -> InlineKey
     builder.button(
         text=ButtonsStorage.GO_BACK.text,
         callback_data=DevicesCallbackFactory(
-            callback=ButtonsStorage.EDIT_DEVICE.callback,
-            id=client.id
+            callback=ButtonsStorage.EDIT_DEVICE.callback, id=client.id
         ),
     )
     builder.button(
         text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
-        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
+        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback,
     )
     builder.adjust(1, 2)
     return builder.as_markup()
@@ -220,16 +232,14 @@ def get_specific_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup
         builder.button(
             text=ButtonsStorage.REACTIVATE_DEVICE.text,
             callback_data=DevicesCallbackFactory(
-                callback=ButtonsStorage.REACTIVATE_DEVICE.callback,
-                id=client.id
+                callback=ButtonsStorage.REACTIVATE_DEVICE.callback, id=client.id
             ),
         )
 
     builder.button(
         text=ButtonsStorage.EDIT_DEVICE.text,
         callback_data=DevicesCallbackFactory(
-            callback=ButtonsStorage.EDIT_DEVICE.callback,
-            id=client.id
+            callback=ButtonsStorage.EDIT_DEVICE.callback, id=client.id
         ),
     )
     builder.button(
@@ -255,7 +265,9 @@ def get_edit_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
     )
     if client.is_active:
         builder.button(
-            text=ButtonsStorage.EDIT_DEVICE_AUTO_RENEW.text.format(get_auto_renew_emoji(client.auto_renew)),
+            text=ButtonsStorage.EDIT_DEVICE_AUTO_RENEW.text.format(
+                get_auto_renew_emoji(client.auto_renew)
+            ),
             callback_data=DevicesCallbackFactory(
                 callback=ButtonsStorage.EDIT_DEVICE_AUTO_RENEW.callback,
                 id=client.id,

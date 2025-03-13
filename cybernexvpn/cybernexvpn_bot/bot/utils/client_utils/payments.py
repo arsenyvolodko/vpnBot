@@ -12,6 +12,3 @@ async def gen_payment_url(user_id: int, value: int) -> str | None:
 async def get_transactions_history(user_id: int):
     async with CyberNexVPNClient() as api_client:
         return await api_client.get_transaction_history(user_id)
-
-
-

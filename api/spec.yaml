@@ -25,6 +25,27 @@ paths:
       responses:
         200:
           description: Message sent
+  /api/v1/succeed-payment/{payment_id}:
+    parameters:
+      - name: x-api-key
+        in: header
+        description: API Key for authentication
+        required: true
+        schema:
+          type: string
+      - name: payment_id
+        in: path
+        description: Payment ID
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Succeed payment
+      tags:
+        - payment
+      responses:
+        200:
+          description: Payment Succeeded
 
 components:
   schemas:

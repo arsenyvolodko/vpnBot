@@ -13,8 +13,8 @@ class Adapter(logging.LoggerAdapter):
 
         result = copy.deepcopy(kwargs)
 
-        default_kwargs_key = ['exc_info', 'stack_info', 'extra']
+        default_kwargs_key = ["exc_info", "stack_info", "extra"]
         custom_key = [k for k in result.keys() if k not in default_kwargs_key]
-        result['extra'].update({k: result.pop(k) for k in custom_key})
+        result["extra"].update({k: result.pop(k) for k in custom_key})
 
         return msg, result

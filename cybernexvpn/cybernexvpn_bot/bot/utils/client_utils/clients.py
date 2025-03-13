@@ -17,7 +17,9 @@ async def get_user_clients(user_id: int) -> list[schemas.Client]:
     return clients
 
 
-async def create_client(user_id: int, server_id: int, client_type: ClientTypeEnum) -> schemas.Client:
+async def create_client(
+    user_id: int, server_id: int, client_type: ClientTypeEnum
+) -> schemas.Client:
     request_schema = schemas.CreateClientRequest(server=server_id, type=client_type)
     async with CyberNexVPNClient() as api_client:
         client: schemas.Client = await api_client.create_client(user_id, request_schema)
@@ -28,7 +30,9 @@ async def create_client(user_id: int, server_id: int, client_type: ClientTypeEnu
 async def patch_client(user_id: int, client_id: int, **kwargs) -> schemas.Client:
     request_schema = schemas.PatchClientRequest(**kwargs)
     async with CyberNexVPNClient() as api_client:
-        client: schemas.Client = await api_client.patch_client(user_id, client_id, request_schema)
+        client: schemas.Client = await api_client.patch_client(
+            user_id, client_id, request_schema
+        )
 
     return client
 

@@ -1,20 +1,12 @@
 version: '3'
 services:
-#  bot:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    volumes:
-#      - ${SOURCE_WG_CONFIGS_PATH}:${WG_CONFIGS_PATH}
-#      - ${SOURCE_SYNC_CONFIG_FILE_PATH}:${SYNC_CONFIG_FILE_PATH}
-#    env_file:
-#      - .env
-#    network_mode: "host"
-#    privileged: true
-#    command: python3 /app/vpnBot/bot/main.py
-#    cap_add:
-#      - NET_ADMIN
-#      - SYS_MODULE
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: python3 /app/cybernexvpn/cybernexvpn_bot/bot/main.py
 
   celery:
     build:
@@ -27,17 +19,17 @@ services:
       - redis
     restart: always
 
-#  server:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    volumes:
-#      - .:/usr/src/app
-#    command: uvicorn server.main:app --host 0.0.0.0 --port ${FAST_API_PORT}
-#    depends_on:
-#      - redis
-#    ports:
-#      - "${FAST_API_PORT}:${FAST_API_PORT}"
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/app
+    command: uvicorn api.main:app --host 0.0.0.0 --port ${FAST_API_PORT}
+    depends_on:
+      - redis
+    ports:
+      - "${FAST_API_PORT}:${FAST_API_PORT}"
 
   redis:
     image: "redis:alpine"

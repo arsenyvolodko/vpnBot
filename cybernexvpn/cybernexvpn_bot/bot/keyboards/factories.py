@@ -8,7 +8,9 @@ class DevicesCallbackFactory(CallbackData, prefix="devices_callback_factory"):
     id: int
 
 
-class EditDeviceTypeCallbackFactory(CallbackData, prefix="edit_device_type_callback_factory"):
+class EditDeviceTypeCallbackFactory(
+    CallbackData, prefix="edit_device_type_callback_factory"
+):
     id: int
     type: ClientTypeEnum
 

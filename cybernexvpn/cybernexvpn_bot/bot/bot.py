@@ -3,9 +3,11 @@ from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart, CommandObject, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile
+from aiohttp import ClientError
 from dateutil.relativedelta import relativedelta
 
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import *
+from cybernexvpn.cybernexvpn_bot.bot.models import PaymentModel
 from cybernexvpn.cybernexvpn_bot.bot.utils import states
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.clients import (
     get_user_clients,
@@ -13,16 +15,25 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.clients import (
     get_config_file,
     get_client,
     patch_client,
-    delete_client, reactivate_client,
+    delete_client,
+    reactivate_client,
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.payments import (
     get_transactions_history,
     gen_payment_url,
 )
-from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.promo_codes import apply_promo_code
-from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.servers import get_servers, get_server
-from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import get_or_create_user, check_and_apply_invitation, \
-    get_user
+from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.promo_codes import (
+    apply_promo_code,
+)
+from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.servers import (
+    get_servers,
+    get_server,
+)
+from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
+    get_or_create_user,
+    apply_invitation_request,
+    get_user,
+)
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import *
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import get_client_data
 from cybernexvpn.cybernexvpn_bot.bot.utils.filters import MainMenuFilter
@@ -42,7 +53,19 @@ async def welcome_message(message: Message, command: CommandObject):
     user, created = await get_or_create_user(user_id, message.from_user.username)
 
     if created and (inviter_id := command.args):
-        await check_and_apply_invitation(message.bot, user, inviter_id)
+        try:
+            inviter_id = int(inviter_id)
+            if await apply_invitation_request(message.from_user.id, inviter_id):
+                await send_safely(
+                    inviter_id,
+                    text=new_text_storage.SUCCESSFUL_INVITATION_INFO_MSG.format(
+                        f"@{message.from_user.username}"
+                        if message.from_user.username
+                        else ""
+                    ),
+                )
+        except ValueError | ClientError:
+            pass
 
     if created:
         reply_markup = get_first_usage_keyboard()
@@ -147,6 +170,7 @@ async def handle_specific_device_query(
 #
 #
 # noinspection PyTypeChecker
+
 
 @router.callback_query(
     DevicesCallbackFactory.filter(
@@ -547,6 +571,15 @@ async def handle_fill_up_balance_factory_query(
             reply_markup=get_back_to_main_menu_keyboard(),
         )
         return
+
+    save_payment_to_redis(
+        url,
+        payment=PaymentModel(
+            user_id=call.from_user.id,
+            message_id=call.message.message_id,
+            value=callback_data.value,
+        ),
+    )
 
     await call.message.edit_text(
         new_text_storage.FILL_UP_BALANCE_INFO_MSG.format(callback_data.value),

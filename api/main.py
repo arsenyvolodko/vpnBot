@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Request
 
 from api import schemas
 from api.utils import _check_api_key
@@ -6,6 +6,17 @@ from cybernexvpn.cybernexvpn_bot.core.celery import app as celery_app
 
 
 app = FastAPI()
+
+
+@app.post("/api/v1/succeed-payment/{payment_id}", status_code=200)
+async def handle_payment_succeeded(
+    request: Request, payment_id: str, x_api_key: str = Header(None)
+):
+    _check_api_key(x_api_key)
+    celery_app.send_task(
+        "cybernexvpn.cybernexvpn_bot.tasks.tasks.handle_payment_succeeded",
+        args=[payment_id],
+    )
 
 
 @app.post("/api/v1/send-message/", status_code=200)

@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 
 from aiogram.client.session import aiohttp
@@ -85,9 +84,7 @@ class CyberNexVPNClient:
     # Users
 
     async def get_users(self) -> list[schemas.User]:
-        request = schemas.Request(
-            url=f"{self._base_url}/users/", method=MethodEnum.GET
-        )
+        request = schemas.Request(url=f"{self._base_url}/users/", method=MethodEnum.GET)
         response = await self._make_request(request)
         return [schemas.User.model_validate(user) for user in response]
 
@@ -99,7 +96,7 @@ class CyberNexVPNClient:
         return schemas.User.model_validate(data)
 
     async def apply_invitation(
-        self, user_id: int, request_schema: schemas.ApplyInvitationRequest
+            self, user_id: int, request_schema: schemas.ApplyInvitationRequest
     ) -> None:
         request = schemas.Request(
             url=f"{self._base_url}/users/{user_id}/apply-invitation/",
@@ -108,7 +105,7 @@ class CyberNexVPNClient:
         await self._make_request(request)
 
     async def create_user(
-        self, user_id: int, request_schema: schemas.CreateUserRequest
+            self, user_id: int, request_schema: schemas.CreateUserRequest
     ) -> schemas.User:
         request = schemas.Request(
             url=f"{self._base_url}/users/{user_id}/",
@@ -136,7 +133,7 @@ class CyberNexVPNClient:
         return [schemas.Client.model_validate(client) for client in response]
 
     async def create_client(
-        self, user_id: int, request_schema: schemas.CreateClientRequest
+            self, user_id: int, request_schema: schemas.CreateClientRequest
     ) -> schemas.Client:
         request = schemas.Request(
             url=f"{self._base_url}/users/{user_id}/clients/",
@@ -147,7 +144,7 @@ class CyberNexVPNClient:
         return schemas.Client.model_validate(data)
 
     async def patch_client(
-        self, user_id: int, client_id: int, request_schema: schemas.PatchClientRequest
+            self, user_id: int, client_id: int, request_schema: schemas.PatchClientRequest
     ) -> schemas.Client:
         request = schemas.Request(
             url=f"{self._base_url}/users/{user_id}/clients/{client_id}/",
@@ -183,7 +180,7 @@ class CyberNexVPNClient:
     ### Payments
 
     async def create_payment(
-        self, user_id: int, request_schema: CreatePaymentRequest
+            self, user_id: int, request_schema: CreatePaymentRequest
     ) -> schemas.PaymentUrl:
         request = schemas.Request(
             url=f"{self._base_url}/users/{user_id}/payments/",
@@ -204,7 +201,7 @@ class CyberNexVPNClient:
     ### Promo Codes
 
     async def apply_promo_code(
-        self, user_id: int, request_schema: schemas.ApplyPromoCodeRequest
+            self, user_id: int, request_schema: schemas.ApplyPromoCodeRequest
     ) -> schemas.ApplyPromoCodeResponse:
         request = schemas.Request(
             url=f"{self._base_url}/users/{user_id}/apply-promo-code/",

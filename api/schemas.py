@@ -1,10 +1,4 @@
-from pydantic import BaseModel as PydanticBaseModel
-
-
-class BaseModel(PydanticBaseModel):
-
-    class Config:
-        arbitrary_types_allowed = True
+from pydantic import BaseModel
 
 
 class Message(BaseModel):
@@ -14,8 +8,3 @@ class Message(BaseModel):
 
 class SubscriptionUpdated(BaseModel):
     pass
-
-
-class FillUpBalance(BaseModel):
-    user_id: int
-    value: int
