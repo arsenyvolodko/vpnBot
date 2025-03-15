@@ -5,7 +5,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from pydantic import BaseModel
 
 from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
-from cybernexvpn.cybernexvpn_bot.bot.utils.common import get_auto_renew_emoji
 from cybernexvpn.cybernexvpn_bot.config import FILLING_UP_VALUES
 from cybernexvpn.cybernexvpn_client import schemas
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.button import Button
@@ -38,7 +37,7 @@ def _construct_keyboard(*args, **kwargs) -> InlineKeyboardMarkup:
 def get_choose_device_type_keyboard(**kwargs) -> InlineKeyboardMarkup:
     if server := kwargs.get("server"):
         builder = _get_choose_device_type_util(
-            server, AddDeviceFactory, ButtonsStorage.SERVER, AddDeviceFactory
+            server, AddDeviceFactory, ButtonsStorage.SERVER, ServersCallbackFactory
         )
     else:
         client = kwargs.get("client")
@@ -76,6 +75,7 @@ def _get_choose_device_type_util(
             ),
         )
 
+    print("AAAA", return_button, return_button.text, return_button.callback, obj_with_id.id)
     builder.button(
         text=ButtonsStorage.GO_BACK.text,
         callback_data=return_factory(
@@ -266,7 +266,7 @@ def get_edit_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
     if client.is_active:
         builder.button(
             text=ButtonsStorage.EDIT_DEVICE_AUTO_RENEW.text.format(
-                get_auto_renew_emoji(client.auto_renew)
+                "✅" if client.auto_renew else "❌"
             ),
             callback_data=DevicesCallbackFactory(
                 callback=ButtonsStorage.EDIT_DEVICE_AUTO_RENEW.callback,

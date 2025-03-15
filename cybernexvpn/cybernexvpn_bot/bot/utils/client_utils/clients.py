@@ -1,55 +1,74 @@
-from cybernexvpn.cybernexvpn_client import schemas
+import logging
+
+from aiogram.types import Message
+from aiogram.types.callback_query import CallbackQuery
+
+from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.common import edit_with_error
+from cybernexvpn.cybernexvpn_client import schemas, errors
 from cybernexvpn.cybernexvpn_client.client import CyberNexVPNClient
 from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 
-
-async def get_client(user_id: int, client_id: int) -> schemas.Client:
-    async with CyberNexVPNClient() as api_client:
-        client: schemas.Client = await api_client.get_client(user_id, client_id)
-
-    return client
+logger = logging.getLogger(__name__)
 
 
-async def get_user_clients(user_id: int) -> list[schemas.Client]:
-    async with CyberNexVPNClient() as api_client:
-        clients: list[schemas.Client] = await api_client.get_clients(user_id)
+async def get_client(user_id: int, client_id: int, call: CallbackQuery | Message) -> schemas.Client | None:
+    try:
+        async with CyberNexVPNClient() as api_client:
+            return await api_client.get_client(user_id, client_id)
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))
 
-    return clients
+
+async def get_user_clients(user_id: int, call: CallbackQuery | Message) -> list[schemas.Client] | None:
+    try:
+        async with CyberNexVPNClient() as api_client:
+            return await api_client.get_clients(user_id)
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))
 
 
 async def create_client(
-    user_id: int, server_id: int, client_type: ClientTypeEnum
-) -> schemas.Client:
+    user_id: int, server_id: int, client_type: ClientTypeEnum, call: CallbackQuery | Message
+) -> schemas.Client | None:
     request_schema = schemas.CreateClientRequest(server=server_id, type=client_type)
-    async with CyberNexVPNClient() as api_client:
-        client: schemas.Client = await api_client.create_client(user_id, request_schema)
+    try:
+        async with CyberNexVPNClient() as api_client:
+            return await api_client.create_client(user_id, request_schema)
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))
 
-    return client
 
-
-async def patch_client(user_id: int, client_id: int, **kwargs) -> schemas.Client:
+async def patch_client(user_id: int, client_id: int, call: CallbackQuery | Message, **kwargs) -> schemas.Client | None:
     request_schema = schemas.PatchClientRequest(**kwargs)
-    async with CyberNexVPNClient() as api_client:
-        client: schemas.Client = await api_client.patch_client(
-            user_id, client_id, request_schema
-        )
-
-    return client
-
-
-async def delete_client(user_id: int, client_id: int) -> None:
-    async with CyberNexVPNClient() as api_client:
-        await api_client.delete_client(user_id, client_id)
+    try:
+        async with CyberNexVPNClient() as api_client:
+            return await api_client.patch_client(
+                user_id, client_id, request_schema
+            )
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))
 
 
-async def get_config_file(user_id: int, client_id: int) -> str:
-    async with CyberNexVPNClient() as api_client:
-        config_file: str = await api_client.get_config_file(user_id, client_id)
+async def delete_client(user_id: int, client_id: int, call: CallbackQuery | Message) -> bool | None:
+    try:
+        async with CyberNexVPNClient() as api_client:
+            await api_client.delete_client(user_id, client_id)
+            return True
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))
 
-    return config_file
+
+async def get_config_file(user_id: int, client_id: int, call: CallbackQuery | Message) -> str | None:
+    try:
+        async with CyberNexVPNClient() as api_client:
+            return await api_client.get_config_file(user_id, client_id)
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))
 
 
-async def reactivate_client(user_id: int, client_id: int) -> schemas.Client:
-    async with CyberNexVPNClient() as api_client:
-        client = await api_client.reactivate_client(user_id, client_id)
-    return client
+async def reactivate_client(user_id: int, client_id: int, call: CallbackQuery | Message) -> schemas.Client | None:
+    try:
+        async with CyberNexVPNClient() as api_client:
+            return await api_client.reactivate_client(user_id, client_id)
+    except errors.ClientBaseError as e:
+        await edit_with_error(call, str(e))

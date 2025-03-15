@@ -2,8 +2,7 @@ from aiofiles import tempfile
 from aiogram import Dispatcher, Router, F
 from aiogram.filters import CommandStart, CommandObject, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, FSInputFile
-from aiohttp import ClientError
+from aiogram.types import FSInputFile
 from dateutil.relativedelta import relativedelta
 
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import *
@@ -26,18 +25,15 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.promo_codes import (
     apply_promo_code,
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.servers import (
-    get_servers,
-    get_server,
+    get_servers, get_server,
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
     get_or_create_user,
-    apply_invitation_request,
-    get_user,
+    apply_invitation_request, get_user,
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import *
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import get_client_data
 from cybernexvpn.cybernexvpn_bot.bot.utils.filters import MainMenuFilter
-from cybernexvpn.cybernexvpn_bot import config
 
 dp = Dispatcher()
 router = Router()
@@ -50,22 +46,25 @@ dp.include_router(router)
 @dp.message(CommandStart())
 async def welcome_message(message: Message, command: CommandObject):
     user_id = message.chat.id
-    user, created = await get_or_create_user(user_id, message.from_user.username)
+    user, created = await get_or_create_user(user_id, message.from_user.username, message)
+    if not user:
+        return
 
     if created and (inviter_id := command.args):
         try:
             inviter_id = int(inviter_id)
-            if await apply_invitation_request(message.from_user.id, inviter_id):
-                await send_safely(
-                    inviter_id,
-                    text=new_text_storage.SUCCESSFUL_INVITATION_INFO_MSG.format(
-                        f"@{message.from_user.username}"
-                        if message.from_user.username
-                        else ""
-                    ),
-                )
-        except ValueError | ClientError:
+        except ValueError:
             pass
+
+        if await apply_invitation_request(message.from_user.id, inviter_id, message):
+            await send_safely(
+                inviter_id,
+                text=new_text_storage.SUCCESSFUL_INVITATION_INFO_MSG.format(
+                    f"@{message.from_user.username}"
+                    if message.from_user.username
+                    else ""
+                ),
+            )
 
     if created:
         reply_markup = get_first_usage_keyboard()
@@ -117,7 +116,10 @@ async def handle_cancel_state_query(call: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == ButtonsStorage.DEVICES.callback)
 async def handle_callback(call: CallbackQuery):
-    clients = await get_user_clients(user_id=call.from_user.id)
+    clients = await get_user_clients(call.from_user.id, call)
+    if clients is None:
+        return
+
     await call.message.edit_text(
         text=(
             new_text_storage.CHOOSE_DEVICE
@@ -135,7 +137,10 @@ async def handle_specific_device_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client_id = callback_data.id
-    client = await get_client(call.from_user.id, client_id)
+    client = await get_client(call.from_user.id, client_id, call)
+
+    if not client:
+        return
 
     data = await get_client_data(client)
 
@@ -180,19 +185,23 @@ async def handle_specific_device_query(
 async def handle_reactivate_device_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
-    client = await get_client(call.from_user.id, callback_data.id)
+    client = await get_client(call.from_user.id, callback_data.id, call)
+    if not client:
+        return
+
     client_was_active = client.is_active
 
     if not client.is_active:
-        user = await get_user(call.from_user.id)
-        if user.balance < client.price:
-            await call.answer(
-                new_text_storage.NOT_ENOUGH_MONEY_ERROR_MSG.format(user.balance),
-                show_alert=True,
-            )
+        user = await get_user(call.from_user.id, call)
+        if not user:
             return
 
-        client = await reactivate_client(call.from_user.id, client.id)
+        if not await check_user_balance_for_new_client(call, user, client):
+            return
+
+        client = await reactivate_client(call.from_user.id, client.id, call)
+        if not client:
+            return
 
         await call.message.edit_text(
             new_text_storage.DEVICE_SUCCESSFULLY_REACTIVATED.format(client.price),
@@ -225,10 +234,13 @@ async def handle_reactivate_device_query(
 
 @router.callback_query(F.data == ButtonsStorage.ADD_DEVICE.callback)
 async def handle_query(call: CallbackQuery):
-    servers = await get_servers()
+    servers = await get_servers(call)
+    if servers is None:
+        return
+
     if not servers:
         text = new_text_storage.NO_SERVERS_AVAILABLE
-        keyboard = None
+        keyboard = get_back_to_main_menu_keyboard()
     else:
         text = new_text_storage.CHOOSE_REGION
         keyboard = get_servers_keyboard(servers)
@@ -245,13 +257,10 @@ async def handle_query(call: CallbackQuery):
 async def handle_choose_server_query(
     call: CallbackQuery, callback_data: ServersCallbackFactory
 ):
+    print("HERE 1")
     server_id = callback_data.id
-    server = await get_server(server_id)
+    server = await get_server(server_id, call)
     if not server:
-        await call.message.edit_text(
-            text=new_text_storage.SERVER_NOT_FOUND_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
         return
 
     await call.message.edit_text(
@@ -263,25 +272,19 @@ async def handle_choose_server_query(
     )
 
 
+
 @router.callback_query(AddDeviceFactory.filter(F.type == None))  # noqa
 async def handle_add_device_choose_type_query(
     call: CallbackQuery, callback_data: AddDeviceFactory
 ):
-    server = await get_server(callback_data.id)
-    user = await get_user(call.from_user.id)
+    print("HERE 2")
+    user = await get_user(call.from_user.id, call)
+    server = await get_server(callback_data.id, call)
 
-    if not server:
-        await call.message.edit_text(
-            new_text_storage.SERVER_NOT_FOUND_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
+    if not server or not user:
         return
 
-    if user.balance < server.price:
-        await call.answer(
-            new_text_storage.NOT_ENOUGH_MONEY_ERROR_MSG.format(user.balance),
-            show_alert=True,
-        )
+    if not await check_user_balance_for_new_client(call, user, server):
         return
 
     choose_device_type_keyboard = get_choose_device_type_keyboard(server=server)
@@ -293,15 +296,18 @@ async def handle_add_device_choose_type_query(
 
 @router.callback_query(AddDeviceFactory.filter())
 async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceFactory):
+
+    user = await get_user(call.from_user.id, call)
+    server = await get_server(callback_data.id, call)
+
+    if not user or not server or not await check_user_balance_for_new_client(call, user, server):
+        return
+
     client = await create_client(
-        call.from_user.id, callback_data.id, callback_data.type
+        call.from_user.id, callback_data.id, callback_data.type, call
     )
+
     if not client:
-        # todo
-        await call.message.edit_text(
-            new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
         return
 
     await call.message.edit_text(
@@ -309,8 +315,11 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
     )
 
     config_file_data = await get_config_file(
-        user_id=call.from_user.id, client_id=client.id
+        user_id=call.from_user.id, client_id=client.id, call=call
     )
+
+    if not config_file_data:
+        return
 
     async with tempfile.NamedTemporaryFile(
         mode="w+", delete=True, dir="/"
@@ -335,8 +344,10 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
 async def handle_specific_device_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
-    client_id = callback_data.id
-    client = await get_client(call.from_user.id, client_id)
+    client = await get_client(call.from_user.id, callback_data.id, call)
+
+    if not client:
+        return
 
     data = await get_client_data(client)
 
@@ -362,10 +373,16 @@ async def handle_specific_device_query(
 async def handle_edit_auto_renew_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
-    client = await get_client(call.from_user.id, callback_data.id)
+    old_client = await get_client(call.from_user.id, callback_data.id, call)
+    if not old_client:
+        return
+
     client = await patch_client(
-        call.from_user.id, client.id, auto_renew=not client.auto_renew
+        call.from_user.id, old_client.id, auto_renew=not old_client.auto_renew, call=call
     )
+
+    if not client:
+        return
 
     data = await get_client_data(client)
     text = (
@@ -397,7 +414,11 @@ async def handle_edit_auto_renew_query(
 async def handle_edit_device_type_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
-    client = await get_client(call.from_user.id, callback_data.id)
+    client = await get_client(call.from_user.id, callback_data.id, call)
+
+    if not client:
+        return
+
     await call.message.edit_text(
         text=new_text_storage.CHOOSE_DEVICE_TYPE,
         reply_markup=get_choose_device_type_keyboard(client=client),
@@ -409,8 +430,11 @@ async def handle_set_device_type_query(
     call: CallbackQuery, callback_data: EditDeviceTypeCallbackFactory
 ):
     client = await patch_client(
-        call.from_user.id, callback_data.id, type=callback_data.type
+        call.from_user.id, callback_data.id, type=callback_data.type, call=call
     )
+
+    if not client:
+        return
 
     data = await get_client_data(client)
 
@@ -451,15 +475,27 @@ async def handle_message(message: Message, state: FSMContext):
     msg_to_edit: Message = state_data["message"]
     await state.clear()
 
-    try:
-        await msg_to_edit.edit_text(
-            text=new_text_storage.DEVICE_SUCCESSFULLY_RENAMED, reply_markup=None
-        )
-    except Exception:
-        pass
+    client = await patch_client(message.from_user.id, state_data["client_id"], name=message.text, call=message)
+    if not client:
+        return
 
-    await patch_client(message.from_user.id, state_data["client_id"], name=message.text)
-    clients = await get_user_clients(message.from_user.id)
+    edited = await edit_safely(
+        message.from_user.id,
+        msg_to_edit.message_id,
+        text=new_text_storage.DEVICE_SUCCESSFULLY_RENAMED,
+        reply_markup=None
+    )
+
+    if not edited:
+        await send_safely(
+            message.from_user.id,
+            text=new_text_storage.DEVICE_SUCCESSFULLY_RENAMED,
+        )
+
+    clients = await get_user_clients(message.from_user.id, message)
+
+    if not clients:
+        return
 
     text = (
         new_text_storage.CHOOSE_DEVICE if clients else new_text_storage.NO_DEVICES_ADDED
@@ -481,12 +517,9 @@ async def handle_message(message: Message, state: FSMContext):
     )
 )
 async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactory):
-    client = await get_client(call.from_user.id, callback_data.id)
+    client = await get_client(call.from_user.id, callback_data.id, call)
+
     if not client:
-        await call.message.edit_text(
-            text=new_text_storage.CLIENT_NOT_FOUND_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
         return
 
     await call.message.edit_text(
@@ -503,8 +536,11 @@ async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactor
 async def handle_delete_device_confirmation_query(
     call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
-    await delete_client(call.from_user.id, callback_data.id)
-    # todo
+    deleted = await delete_client(call.from_user.id, callback_data.id, call)
+
+    if not deleted:
+        return
+
     await call.message.edit_text(
         new_text_storage.DEVICE_SUCCESSFULLY_DELETED,
         reply_markup=get_back_to_main_menu_keyboard(),
@@ -516,7 +552,11 @@ async def handle_delete_device_confirmation_query(
 
 @router.callback_query(F.data == ButtonsStorage.FINANCE.callback)
 async def handle_finance_callback_query(call: CallbackQuery):
-    user = await get_user(call.from_user.id)
+    user = await get_user(call.from_user.id, call)
+
+    if not user:
+        return
+
     await call.message.edit_text(
         new_text_storage.BALANCE_INFO.format(user.balance),
         reply_markup=get_finance_callback(),
@@ -525,12 +565,8 @@ async def handle_finance_callback_query(call: CallbackQuery):
 
 @router.callback_query(F.data == ButtonsStorage.GET_TRANSACTIONS_HISTORY.callback)
 async def handle_get_transactions_query(call: CallbackQuery):
-    file_data = await get_transactions_history(call.from_user.id)
+    file_data = await get_transactions_history(call.from_user.id, call)
     if not file_data:
-        await call.message.edit_text(
-            new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
         return
 
     await delete_message_or_delete_markup(call.message)
@@ -564,12 +600,9 @@ async def handle_fill_up_balance_query(call: CallbackQuery):
 async def handle_fill_up_balance_factory_query(
     call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
-    url = await gen_payment_url(call.from_user.id, callback_data.value)
+    url = await gen_payment_url(call.from_user.id, callback_data.value, call)
+
     if not url:
-        await call.message.edit_text(
-            new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
         return
 
     save_payment_to_redis(
@@ -606,24 +639,23 @@ async def handle_message(message: Message, state: FSMContext):
     await state.clear()
 
     applied: schemas.ApplyPromoCodeResponse | None = await apply_promo_code(
-        message.from_user.id, promo_code=message.text.strip()
+        message.from_user.id, promo_code=message.text.strip(), call=msg_to_edit
     )
 
-    try:
-        await msg_to_edit.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
+    if not applied:
+        return
 
-    if applied:
-        await message.answer(
-            text=new_text_storage.PROMO_CODE_SUCCESSFULLY_APPLIED.format(applied.value),
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
-    else:  # todo
-        await message.answer(
-            text=new_text_storage.PROMO_CODE_NOT_FOUND_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
+    await edit_safely(
+        message.from_user.id,
+        msg_to_edit.message_id,
+        text=msg_to_edit.text,
+        reply_markup=None,
+    )
+
+    await message.answer(
+        text=new_text_storage.PROMO_CODE_SUCCESSFULLY_APPLIED.format(applied.value),
+        reply_markup=get_back_to_main_menu_keyboard(),
+    )
 
 
 @router.callback_query(F.data == ButtonsStorage.INVITATION_LINK.callback)

@@ -1,6 +1,6 @@
 import json
 
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from cybernexvpn.cybernexvpn_bot import config
 from cybernexvpn.cybernexvpn_bot.bot import models
@@ -19,17 +19,24 @@ async def send_safely(chat_id: int, text: str, **kwargs) -> bool:
         return False
 
 
+async def edit_safely(chat_id: int, message_id: int, text: str, **kwargs) -> bool:
+    try:
+        await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text, **kwargs)
+        return True
+    except Exception:
+        return False
+
+
 async def delete_message_or_delete_markup(obj):
 
-    if isinstance(obj, Message):
-        await obj.delete()
-        return
-
-    await obj.delete_reply_markup()
-
-
-def get_auto_renew_emoji(status: bool):
-    return "✅" if status else "❌"
+    try:
+        if isinstance(obj, Message):
+            await obj.delete()
+        else:
+            await obj.delete_reply_markup()
+        return True
+    except Exception:
+        return False
 
 
 async def get_client_data(client: schemas.Client):
@@ -41,7 +48,7 @@ async def get_client_data(client: schemas.Client):
         "server": client.server_name,
         "price": client.price,
         "type": client.type.label,
-        "auto_renew": get_auto_renew_emoji(client.auto_renew),
+        "auto_renew": "✅" if client.auto_renew else "❌",
         "date": client.end_date.strftime("%d.%m.%Y"),
     }
 
@@ -81,3 +88,13 @@ async def handle_payment_succeeded_util(payment_id: str):
         text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED.format(payment.value),
         parse_mode="HTML",
     )
+
+
+async def check_user_balance_for_new_client(call: CallbackQuery, user: schemas.User, obj: schemas.Server | schemas.Client) -> bool:
+    if user.balance < obj.price:
+        await call.answer(
+            new_text_storage.NOT_ENOUGH_MONEY_ERROR_MSG.format(user.balance),
+            show_alert=True
+        )
+        return False
+    return True
