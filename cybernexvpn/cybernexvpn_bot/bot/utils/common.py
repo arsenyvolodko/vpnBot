@@ -1,4 +1,5 @@
 import json
+import random
 
 from aiogram.types import Message, CallbackQuery
 
@@ -9,6 +10,7 @@ from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import get_users
 from cybernexvpn.cybernexvpn_bot.core.redis_config import r
 from cybernexvpn.cybernexvpn_client import schemas
+from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 
 
 async def send_safely(chat_id: int, text: str, **kwargs) -> bool:
@@ -101,3 +103,11 @@ async def check_user_balance_for_new_client(call: CallbackQuery, user: schemas.U
         )
         return False
     return True
+
+
+def get_filename(client: schemas.Client) -> str:
+    base_name = "cybernexvpn"
+    if client.type == ClientTypeEnum.ANDROID:
+        base_name = random.choice(new_text_storage.ANDROID_NAME_CHOICES)
+    return f"{base_name}.conf"
+

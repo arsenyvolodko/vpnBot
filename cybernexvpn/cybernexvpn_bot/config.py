@@ -14,6 +14,7 @@ REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 REDIS_DB_TTL = 60 * 10
 
 ADMIN_USER_ID = int(os.environ.get("ADMIN_USER_ID"))
+ADMIN_TG_URL = os.environ.get("ADMIN_URL", "https://t.me/arseny_volodko")
 BOT_URL = os.environ.get("BOT_URL", "https://t.me/CyberNexVpnBot")
 
 START_BALANCE = 100

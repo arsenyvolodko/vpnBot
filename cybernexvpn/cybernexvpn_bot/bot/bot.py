@@ -1,7 +1,9 @@
 import logging
 import os
 import random
+from operator import or_
 
+import qrcode
 from aiofiles import tempfile
 from aiogram import Dispatcher, Router, F
 from aiogram.enums import ParseMode
@@ -41,7 +43,7 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_client_data, \
     check_user_balance_for_new_client, edit_safely, delete_message_or_delete_markup, save_payment_to_redis, \
-    generate_invitation_link
+    generate_invitation_link, get_filename
 from cybernexvpn.cybernexvpn_bot.bot.utils.filters import MainMenuFilter
 
 dp = Dispatcher()
@@ -49,6 +51,7 @@ router = Router()
 dp.include_router(router)
 
 logger = logging.getLogger(__name__)
+
 
 # COMMON FUNCTIONS
 
@@ -144,7 +147,7 @@ async def handle_callback(call: CallbackQuery):
     DevicesCallbackFactory.filter(F.callback == ButtonsStorage.DEVICE.callback)  # noqa
 )
 async def handle_specific_device_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client_id = callback_data.id
     client = await get_client(call.from_user.id, client_id, call)
@@ -173,7 +176,7 @@ async def handle_specific_device_query(
     )
 )
 async def handle_get_connection_data_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client = await get_client(call.from_user.id, callback_data.id, call)
     if not client:
@@ -197,15 +200,7 @@ async def handle_get_connection_data_query(
         await call.message.delete()
 
 
-def get_filename(client: schemas.Client) -> str:
-    base_name = "cybernexvpn"
-    if client.type == ClientTypeEnum.ANDROID:
-        base_name = random.choice(new_text_storage.ANDROID_NAME_CHOICES)
-    return f"{base_name}.conf"
-
-
 async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> bool:
-
     config_file_data = await get_config_file(
         user_id=call.from_user.id, client_id=client.id, call=call
     )
@@ -217,7 +212,7 @@ async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> b
 
     try:
         async with tempfile.NamedTemporaryFile(
-            mode="w+", delete=True
+                mode="w+", delete=True
         ) as temp_file:
             await temp_file.write(config_file_data)
             await temp_file.flush()
@@ -234,35 +229,136 @@ async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> b
         )
         return False
 
-    # todo
-    if client.type == ClientTypeEnum.IPHONE:
-        caption = new_text_storage.IPHONE_CONNECTION_INSTRUCTION
-        photos_dir = config.IPHONE_INSTRUCTION_PATH
-    elif client.type == ClientTypeEnum.ANDROID:
-        pass
+    if client.type in [ClientTypeEnum.IPHONE, ClientTypeEnum.ANDROID]:
+        if client.type == ClientTypeEnum.IPHONE:
+            caption = new_text_storage.IPHONE_CONNECTION_INSTRUCTION
+            photos_dir = config.IPHONE_INSTRUCTION_PATH
+        else:
+            caption = new_text_storage.ANDROID_CONNECTION_INSTRUCTION
+            photos_dir = config.IPHONE_INSTRUCTION_PATH  # todo
+
+        media_group = MediaGroupBuilder()
+        photos = sorted(os.listdir(photos_dir))
+        for ind, photo in enumerate(photos):
+            media_data = {
+                "media": FSInputFile(photos_dir / photo),
+            }
+            if ind == len(photos) - 1:
+                media_data["caption"] = caption
+                media_data["parse_mode"] = ParseMode.HTML
+            media_group.add_photo(**media_data)
+
+        await call.message.answer_media_group(
+            media=media_group.build(),
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+
+        await call.message.answer(
+            text=new_text_storage.IS_EVERYTHING_OK,
+            reply_markup=get_post_adding_device_keyboard(client)
+        )
+
+        return True
+
     elif client.type == ClientTypeEnum.WINDOWS:
-        pass
+        text = new_text_storage.WINDOWS_CONNECTION_INSTRUCTION
     else:
-        pass
+        text = new_text_storage.MACOS_CONNECTION_INSTRUCTION
 
-    media_group = MediaGroupBuilder()
-    photos = sorted(os.listdir(photos_dir))
-    for ind, photo in enumerate(photos):
-        media_data = {
-            "media": InputFile(photos_dir / photo),
-        }
-        if ind == len(photos) - 1:
-            media_data["caption"] = caption
-            media_data["parse_mode"] = ParseMode.HTML
-        media_group.add_photo(**media_data)
-
-    await call.message.answer_media_group(
-        media=media_group.build(),
+    await call.message.answer(
+        text=text,
         parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
+        reply_markup=get_post_adding_device_keyboard(client)
+    )
+    return True
+
+
+@router.callback_query(
+    PostAdditionDeviceFactory.filter(
+        F.step == 1
+    )
+)
+async def handle_post_adding_device_query(call: CallbackQuery, callback_data: PostAdditionDeviceFactory):
+    client = await get_client(call.from_user.id, callback_data.client_id, call)
+    if not client:
+        return
+
+    if client.type == ClientTypeEnum.ANDROID:
+        await call.message.edit_text(
+            new_text_storage.ANDROID_ALTERNATIVES,
+            reply_markup=get_what_is_wrong_2_keyboard(client),
+            parse_mode=ParseMode.HTML,
+        )
+    else:
+        await call.message.edit_text(
+            new_text_storage.TEXT_ME,
+            reply_markup=get_back_to_main_menu_keyboard(with_new_message=True),
+            parse_mode=ParseMode.HTML,
+        )
+
+
+@router.callback_query(
+    PostAdditionDeviceFactory.filter(
+        F.step == 3
+    )
+)
+async def handle_get_qr_query(call: CallbackQuery, callback_data: PostAdditionDeviceFactory):
+    client = await get_client(call.from_user.id, callback_data.client_id, call)
+    if not client:
+        return
+
+    config_file_data = await get_config_file(
+        user_id=call.from_user.id, client_id=client.id, call=call
     )
 
-    return True
+    if not config_file_data:
+        return False
+
+    await call.message.edit_reply_markup(
+        reply_markup=None
+    )
+
+    try:
+        async with tempfile.NamedTemporaryFile(
+            delete=True, suffix=".png", dir="./"
+        ) as temp_file:
+            qr = qrcode.make(config_file_data)
+            temp_file_path = temp_file.name
+            qr.save(temp_file_path)
+
+            await call.message.answer_photo(
+                photo=FSInputFile(temp_file_path),
+                caption=new_text_storage.QR_CODE_INSTRUCTION,
+            )
+            await call.message.answer(
+                text=new_text_storage.IS_EVERYTHING_OK_2,
+                reply_markup=get_what_is_wrong_3_keyboard(),
+                parse_mode=ParseMode.HTML,
+            )
+
+            await temp_file.flush()
+
+        return
+
+    except Exception as e:
+        logger.error("Error while sending qr code", exc_info=e)
+        await call.message.edit_text(
+            new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
+            reply_markup=get_back_to_main_menu_keyboard(),
+        )
+        return
+
+
+@router.callback_query(F.data == ButtonsStorage.ANOTHER_PROBLEM.callback)
+async def handle_adding_device_problem_query(call: CallbackQuery):
+
+    await call.message.edit_text(
+        new_text_storage.TEXT_ME,
+        reply_markup=get_back_to_main_menu_keyboard(with_new_message=True),
+        parse_mode=ParseMode.HTML,
+    )
 
 
 @router.callback_query(
@@ -271,7 +367,7 @@ async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> b
     )
 )
 async def handle_reactivate_device_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client = await get_client(call.from_user.id, callback_data.id, call)
     if not client:
@@ -343,9 +439,8 @@ async def handle_query(call: CallbackQuery):
     ServersCallbackFactory.filter(F.callback == ButtonsStorage.SERVER.callback)  # noqa
 )
 async def handle_choose_server_query(
-    call: CallbackQuery, callback_data: ServersCallbackFactory
+        call: CallbackQuery, callback_data: ServersCallbackFactory
 ):
-    print("HERE 1")
     server_id = callback_data.id
     server = await get_server(server_id, call)
     if not server:
@@ -360,12 +455,10 @@ async def handle_choose_server_query(
     )
 
 
-
 @router.callback_query(AddDeviceFactory.filter(F.type == None))  # noqa
 async def handle_add_device_choose_type_query(
-    call: CallbackQuery, callback_data: AddDeviceFactory
+        call: CallbackQuery, callback_data: AddDeviceFactory
 ):
-    print("HERE 2")
     user = await get_user(call.from_user.id, call)
     server = await get_server(callback_data.id, call)
 
@@ -384,7 +477,6 @@ async def handle_add_device_choose_type_query(
 
 @router.callback_query(AddDeviceFactory.filter())
 async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceFactory):
-
     user = await get_user(call.from_user.id, call)
     server = await get_server(callback_data.id, call)
 
@@ -402,23 +494,7 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
         new_text_storage.DEVICE_SUCCESSFULLY_ADDED,
     )
 
-    # config_file_data = await get_config_file(
-    #     user_id=call.from_user.id, client_id=client.id, call=call
-    # )
-    #
-    # if not config_file_data:
-    #     return
-    #
-    # async with tempfile.NamedTemporaryFile(
-    #     mode="w+", delete=True, dir="/"
-    # ) as temp_file:
-    #     await temp_file.write(config_file_data)
-    #     await temp_file.flush()
-    #
-    #     await call.bot.send_document(
-    #         chat_id=call.from_user.id,
-    #         document=FSInputFile(temp_file.name, filename=f"{client.name}.conf"),
-    #     )
+    await send_connection_data(call, client)
 
 
 # EDITING DEVICES
@@ -430,7 +506,7 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
     )
 )
 async def handle_specific_device_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client = await get_client(call.from_user.id, callback_data.id, call)
 
@@ -459,7 +535,7 @@ async def handle_specific_device_query(
     )
 )
 async def handle_edit_auto_renew_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     old_client = await get_client(call.from_user.id, callback_data.id, call)
     if not old_client:
@@ -500,7 +576,7 @@ async def handle_edit_auto_renew_query(
     )
 )
 async def handle_edit_device_type_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client = await get_client(call.from_user.id, callback_data.id, call)
 
@@ -515,7 +591,7 @@ async def handle_edit_device_type_query(
 
 @router.callback_query(EditDeviceTypeCallbackFactory.filter())
 async def handle_set_device_type_query(
-    call: CallbackQuery, callback_data: EditDeviceTypeCallbackFactory
+        call: CallbackQuery, callback_data: EditDeviceTypeCallbackFactory
 ):
     client = await patch_client(
         call.from_user.id, callback_data.id, type=callback_data.type, call=call
@@ -546,7 +622,7 @@ async def handle_set_device_type_query(
     )
 )
 async def handle_edit_device_auto_renew_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory, state: FSMContext
+        call: CallbackQuery, callback_data: DevicesCallbackFactory, state: FSMContext
 ):
     await state.set_state(states.EDIT_DEVICE_NAME_EXPECTING_STATE)
     await state.set_data({"message": call.message, "client_id": callback_data.id})
@@ -622,7 +698,7 @@ async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactor
     )
 )
 async def handle_delete_device_confirmation_query(
-    call: CallbackQuery, callback_data: DevicesCallbackFactory
+        call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     deleted = await delete_client(call.from_user.id, callback_data.id, call)
 
@@ -660,7 +736,7 @@ async def handle_get_transactions_query(call: CallbackQuery):
     await delete_message_or_delete_markup(call.message)
 
     async with tempfile.NamedTemporaryFile(
-        mode="w+", delete=True, dir="/"
+            mode="w+", delete=True
     ) as temp_file:
         await temp_file.write(file_data)
         await temp_file.flush()
@@ -686,7 +762,7 @@ async def handle_fill_up_balance_query(call: CallbackQuery):
 
 @router.callback_query(FillUpBalanceFactory.filter())
 async def handle_fill_up_balance_factory_query(
-    call: CallbackQuery, callback_data: FillUpBalanceFactory
+        call: CallbackQuery, callback_data: FillUpBalanceFactory
 ):
     url = await gen_payment_url(call.from_user.id, callback_data.value, call)
 

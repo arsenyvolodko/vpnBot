@@ -29,5 +29,10 @@ class AddDeviceFactory(CallbackData, prefix="add_device_factory"):
     type: ClientTypeEnum | None = None
 
 
-class GetQrCodeFactory(CallbackData, prefix="get_qr_code_factory"):
-    id: int
+class PostAdditionDeviceFactory(CallbackData, prefix="post_addition_device_factory"):
+    client_id: int
+    step: int
+
+
+class GetVideoInstructionFactory(CallbackData, prefix="get_video_instruction_factory"):
+    client_type: ClientTypeEnum
