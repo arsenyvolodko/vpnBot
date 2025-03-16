@@ -7,12 +7,13 @@ from cybernexvpn.cybernexvpn_client.client import CyberNexVPNClient
 from cybernexvpn.cybernexvpn_client.errors import NotFoundError
 
 
-async def get_users(call: CallbackQuery | Message) -> list[schemas.User] | None:
+async def get_users(call: CallbackQuery | Message | None = None) -> list[schemas.User] | None:
     try:
         async with CyberNexVPNClient() as api_client:
             return await api_client.get_users()
     except errors.ClientBaseError as e:
-        await edit_with_error(call, str(e))
+        if call:
+            await edit_with_error(call, str(e))
 
 
 async def get_user(user_id: int, call: CallbackQuery | Message) -> schemas.User | None:

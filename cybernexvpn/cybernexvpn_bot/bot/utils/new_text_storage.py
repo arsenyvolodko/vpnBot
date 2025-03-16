@@ -104,7 +104,7 @@ INVITATION_LINK_INFO_MSG = (
     "перешедшего по твоей пригласительной ссылке: {}"
 )
 
-SET_CORRECT_DEVICE_TYPE = "Для того, чтобы продолжить, необходимо выбрать тип устройства (единоразово). Впоследствии ты сможешь изменить его в настройках устройства"
+SET_CORRECT_DEVICE_TYPE = "Для того, чтобы продолжить, необходимо выбрать тип устройства. Впоследствии ты сможешь изменить его в настройках устройства"
 
 DEVICE_ALREADY_ACTIVE = "Устройство уже активно"
 DEVICE_SUCCESSFULLY_REACTIVATED = (
@@ -112,3 +112,44 @@ DEVICE_SUCCESSFULLY_REACTIVATED = (
 )
 TO_PAY_BTN_LINK_TEXT = "Оплатить"
 PAYMENT_SUCCESSFULLY_PROCESSED = "Твой баланс успешно пополнен на {}₽"
+
+GETTiNG_CONNECTION_DATA = "Получаю данные.."
+
+WINDOWS_CONNECTION_INSTRUCTION = (
+    '1. Скачай <a href="https://www.wireguard.com/install/">приложение</a> Wireguard\n'
+    '2. Скачай файл в сообщении выше\n'
+    '3. Открой Wireguard, нажми "Добавить туннель" и выбери скачанный файл\n'
+)
+
+MACOS_CONNECTION_INSTRUCTION = (
+    '1. Скачай <a href="https://apps.apple.com/ru/app/wireguard/id1451685025?mt=12">приложение</a> Wireguard\n'
+    '2. Скачай файл в сообщении выше\n'
+    '3. Открой Wireguard, нажми на плюсик в левом нижнем углу и выбери скачанный файл\n'
+)
+
+ANDROID_CONNECTION_INSTRUCTION = (
+    '1. Скачай <a href="https://play.google.com/store/apps/details?id=com.wireguard.android">приложение</a> Wireguard\n'
+    '2. Открой файл в сообщении выше и поделись им в приложение Wireguard\n'
+    'Или используй QR-код, нажав на кнопку ниже, если у тебя есть возможность открыть его на другом устройстве.\n'
+)
+
+IPHONE_CONNECTION_INSTRUCTION = (
+    '1. Скачай <a href="https://apps.apple.com/us/app/wireguard/id1441195209">приложение</a> Wireguard\n'
+    '2. Сделай 5 тыков, как показано на фото выше (поверь, оно того стоит..)\n'
+    '3. Ура! Теперь можно смотреть рилсы!'
+)
+
+ANDROID_NAME_CHOICES = [
+    "cybernexvpn",
+    "cybernexVpn",
+    "cybernexVPN",
+    "cyberNexvpn",
+    "cyberNexVpn",
+    "cyberNexVPN",
+    "Cybernexvpn",
+    "CybernexVpn",
+    "CybernexVPN",
+    "CyberNexvpn",
+    "CyberNexVpn",
+    "CyberNexVPN",
+]

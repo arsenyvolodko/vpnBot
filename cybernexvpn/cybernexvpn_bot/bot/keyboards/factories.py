@@ -27,3 +27,7 @@ class FillUpBalanceFactory(CallbackData, prefix="fill_up_balance_factory"):
 class AddDeviceFactory(CallbackData, prefix="add_device_factory"):
     id: int  # server id
     type: ClientTypeEnum | None = None
+
+
+class GetQrCodeFactory(CallbackData, prefix="get_qr_code_factory"):
+    id: int

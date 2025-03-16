@@ -15,7 +15,7 @@ from cybernexvpn.cybernexvpn_bot.bot.keyboards.factories import (
     DevicesCallbackFactory,
     ServersCallbackFactory,
     AddDeviceFactory,
-    EditDeviceTypeCallbackFactory,
+    EditDeviceTypeCallbackFactory, GetQrCodeFactory,
 )
 
 
@@ -52,7 +52,7 @@ def get_choose_device_type_keyboard(**kwargs) -> InlineKeyboardMarkup:
         text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
         callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback,
     )
-    builder.adjust(3, 2)
+    builder.adjust(2, 2, 2)
     return builder.as_markup()
 
 
@@ -75,7 +75,6 @@ def _get_choose_device_type_util(
             ),
         )
 
-    print("AAAA", return_button, return_button.text, return_button.callback, obj_with_id.id)
     builder.button(
         text=ButtonsStorage.GO_BACK.text,
         callback_data=return_factory(
@@ -158,13 +157,6 @@ def _get_client_button_text(client: schemas.Client) -> str:
     return f"{client.name} {status}"
 
 
-def get_add_device_confirmation_keyboard() -> InlineKeyboardMarkup:
-    return _construct_keyboard(
-        ButtonsStorage.ADD_DEVICE_CONFIRMATION.get_button(),
-        ButtonsStorage.DEVICES.get_button(text=ButtonsStorage.GO_BACK.text),
-    )
-
-
 def get_delete_device_confirmation_keyboard(
     client: schemas.Client,
 ) -> InlineKeyboardMarkup:
@@ -222,9 +214,9 @@ def get_specific_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup
     builder = InlineKeyboardBuilder()
     if client.is_active:
         builder.button(
-            text=ButtonsStorage.GET_DEVICES_CONFIG_AND_QR.text,
+            text=ButtonsStorage.GET_CONNECTION_DATA.text,
             callback_data=DevicesCallbackFactory(
-                callback=ButtonsStorage.GET_DEVICES_CONFIG_AND_QR.callback,
+                callback=ButtonsStorage.GET_CONNECTION_DATA.callback,
                 id=client.id,
             ),
         )
@@ -300,6 +292,17 @@ def get_edit_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
     )
     buttons_cnt = 4 if client.is_active else 3
     builder.adjust(*[1] * buttons_cnt, 2)
+    return builder.as_markup()
+
+
+def get_qr_code_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=ButtonsStorage.GET_QR_CODE.text,
+        callback_data=GetQrCodeFactory(
+            id=client.id,
+        ),
+    )
     return builder.as_markup()
 
 

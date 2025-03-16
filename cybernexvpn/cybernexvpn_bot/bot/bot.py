@@ -1,10 +1,18 @@
+import logging
+import os
+import random
+
 from aiofiles import tempfile
 from aiogram import Dispatcher, Router, F
+from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, CommandObject, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, InputFile, Message
+from aiogram.types.callback_query import CallbackQuery
+from aiogram.utils.media_group import MediaGroupBuilder
 from dateutil.relativedelta import relativedelta
 
+from cybernexvpn.cybernexvpn_bot import config
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import *
 from cybernexvpn.cybernexvpn_bot.bot.models import PaymentModel
 from cybernexvpn.cybernexvpn_bot.bot.utils import states
@@ -31,14 +39,16 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
     get_or_create_user,
     apply_invitation_request, get_user,
 )
-from cybernexvpn.cybernexvpn_bot.bot.utils.common import *
-from cybernexvpn.cybernexvpn_bot.bot.utils.common import get_client_data
+from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_client_data, \
+    check_user_balance_for_new_client, edit_safely, delete_message_or_delete_markup, save_payment_to_redis, \
+    generate_invitation_link
 from cybernexvpn.cybernexvpn_bot.bot.utils.filters import MainMenuFilter
 
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 
+logger = logging.getLogger(__name__)
 
 # COMMON FUNCTIONS
 
@@ -157,29 +167,107 @@ async def handle_specific_device_query(
     )
 
 
-# # noinspection PyTypeChecker
-# @router.callback_query(
-#     DevicesCallbackFactory.filter(
-#         F.callback == ButtonsStorage.GET_DEVICES_CONFIG_AND_QR.callback
-#     )
-# )
-# tasks def handle_get_device_config_and_qr_query(
-#     call: CallbackQuery, callback_data: DevicesCallbackFactory
-# ):
-#     device_num = callback_data.device_num
-#     client = await db_manager.get_record(
-#         Client, user_id=call.from_user.id, device_num=device_num
-#     )
-#     wg_client = await get_wg_client_by_client(client)
-#     await send_config_and_qr(wg_client, call, client.device_num)
-#
-#
-# noinspection PyTypeChecker
+@router.callback_query(
+    DevicesCallbackFactory.filter(
+        F.callback == ButtonsStorage.GET_CONNECTION_DATA.callback  # noqa
+    )
+)
+async def handle_get_connection_data_query(
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
+):
+    client = await get_client(call.from_user.id, callback_data.id, call)
+    if not client:
+        return
+
+    if client.type == ClientTypeEnum.UNKNOWN:
+        await call.message.edit_text(
+            new_text_storage.SET_CORRECT_DEVICE_TYPE,
+            reply_markup=get_choose_device_type_keyboard(client=client),
+        )
+        return
+
+    await call.message.edit_text(
+        new_text_storage.GETTiNG_CONNECTION_DATA,
+        reply_markup=None
+    )
+
+    ok = await send_connection_data(call, client)
+
+    if ok:
+        await call.message.delete()
+
+
+def get_filename(client: schemas.Client) -> str:
+    base_name = "cybernexvpn"
+    if client.type == ClientTypeEnum.ANDROID:
+        base_name = random.choice(new_text_storage.ANDROID_NAME_CHOICES)
+    return f"{base_name}.conf"
+
+
+async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> bool:
+
+    config_file_data = await get_config_file(
+        user_id=call.from_user.id, client_id=client.id, call=call
+    )
+
+    if not config_file_data:
+        return False
+
+    filename = get_filename(client)  # todo
+
+    try:
+        async with tempfile.NamedTemporaryFile(
+            mode="w+", delete=True
+        ) as temp_file:
+            await temp_file.write(config_file_data)
+            await temp_file.flush()
+
+            await call.bot.send_document(
+                chat_id=call.from_user.id,
+                document=FSInputFile(temp_file.name, filename=filename),
+            )
+    except Exception as e:
+        logger.error("Error while sending config data", exc_info=e)
+        await call.message.edit_text(
+            new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
+            reply_markup=get_back_to_main_menu_keyboard(),
+        )
+        return False
+
+    # todo
+    if client.type == ClientTypeEnum.IPHONE:
+        caption = new_text_storage.IPHONE_CONNECTION_INSTRUCTION
+        photos_dir = config.IPHONE_INSTRUCTION_PATH
+    elif client.type == ClientTypeEnum.ANDROID:
+        pass
+    elif client.type == ClientTypeEnum.WINDOWS:
+        pass
+    else:
+        pass
+
+    media_group = MediaGroupBuilder()
+    photos = sorted(os.listdir(photos_dir))
+    for ind, photo in enumerate(photos):
+        media_data = {
+            "media": InputFile(photos_dir / photo),
+        }
+        if ind == len(photos) - 1:
+            media_data["caption"] = caption
+            media_data["parse_mode"] = ParseMode.HTML
+        media_group.add_photo(**media_data)
+
+    await call.message.answer_media_group(
+        media=media_group.build(),
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True,
+    )
+
+    return True
 
 
 @router.callback_query(
     DevicesCallbackFactory.filter(
-        F.callback == ButtonsStorage.REACTIVATE_DEVICE.callback
+        F.callback == ButtonsStorage.REACTIVATE_DEVICE.callback  # noqa
     )
 )
 async def handle_reactivate_device_query(
@@ -314,23 +402,23 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
         new_text_storage.DEVICE_SUCCESSFULLY_ADDED,
     )
 
-    config_file_data = await get_config_file(
-        user_id=call.from_user.id, client_id=client.id, call=call
-    )
-
-    if not config_file_data:
-        return
-
-    async with tempfile.NamedTemporaryFile(
-        mode="w+", delete=True, dir="/"
-    ) as temp_file:
-        await temp_file.write(config_file_data)
-        await temp_file.flush()
-
-        await call.bot.send_document(
-            chat_id=call.from_user.id,
-            document=FSInputFile(temp_file.name, filename=f"{client.name}.conf"),
-        )
+    # config_file_data = await get_config_file(
+    #     user_id=call.from_user.id, client_id=client.id, call=call
+    # )
+    #
+    # if not config_file_data:
+    #     return
+    #
+    # async with tempfile.NamedTemporaryFile(
+    #     mode="w+", delete=True, dir="/"
+    # ) as temp_file:
+    #     await temp_file.write(config_file_data)
+    #     await temp_file.flush()
+    #
+    #     await call.bot.send_document(
+    #         chat_id=call.from_user.id,
+    #         document=FSInputFile(temp_file.name, filename=f"{client.name}.conf"),
+    #     )
 
 
 # EDITING DEVICES

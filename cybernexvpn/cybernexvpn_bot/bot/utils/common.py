@@ -74,6 +74,9 @@ async def send_message_from_admin_util(message_schema):
         await send_safely(config.ADMIN_USER_ID, message_schema.text, parse_mode="HTML")
     else:
         users = await get_users()
+        if not users:
+            return
+
         for user in users:
             await send_safely(user.id, message_schema.text, parse_mode="HTML")
 

@@ -3,6 +3,7 @@ from django.db.models import TextChoices
 
 class ClientTypeEnum(TextChoices):
     UNKNOWN = "unknown", "Неизвестен ❓"
+    IPHONE = "iphone", "Iphone "
     ANDROID = "android", "Android 📱"
-    Iphone = "iphone", "Iphone "
-    PC = "pc", "PC 💻"
+    MACOS = "macos", "MacOS ⌘"
+    WINDOWS = "windows", "Windows 🖥️"
