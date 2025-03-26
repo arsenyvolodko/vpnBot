@@ -33,16 +33,20 @@ async def create_user(user_id: int, username: str | None, call: CallbackQuery | 
         await edit_with_error(call, str(e))
 
 
-async def get_or_create_user(  # todo check using
-    user_id: int, username: str | None, call: CallbackQuery | Message
+async def get_or_create_user(
+    user_id: int, username: str | None, message: CallbackQuery | Message
 ) -> tuple[schemas.User | None, bool]:
     async with CyberNexVPNClient() as api_client:
         try:
             created = False
             user: schemas.User = await api_client.get_user(user_id)
         except NotFoundError:
-            user = await create_user(user_id, username, call)
+            user = await create_user(user_id, username, message)
             created = True if user else False
+        except errors.ClientBaseError as e:
+            await edit_with_error(message, str(e))
+            return None, False
+
     return user, created
 
 

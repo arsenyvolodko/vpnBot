@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from cybernexvpn.cybernexvpn_client import schemas
 from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 
 
@@ -11,14 +12,14 @@ class Client(BaseModel):
     name: str
     is_active: bool
     end_date: datetime.date
-    server_name: str
+    server: schemas.Server
     price: int
     auto_renew: bool = True
     type: ClientTypeEnum
 
 
 class CreateClientRequest(BaseModel):
-    server: int
+    server_id: int
     type: ClientTypeEnum
 
 

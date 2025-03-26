@@ -31,8 +31,6 @@ class AddDeviceFactory(CallbackData, prefix="add_device_factory"):
 
 class PostAdditionDeviceFactory(CallbackData, prefix="post_addition_device_factory"):
     client_id: int
-    step: int
+    callback: str
 
 
-class GetVideoInstructionFactory(CallbackData, prefix="get_video_instruction_factory"):
-    client_type: ClientTypeEnum

@@ -30,7 +30,7 @@ async def get_user_clients(user_id: int, call: CallbackQuery | Message) -> list[
 async def create_client(
     user_id: int, server_id: int, client_type: ClientTypeEnum, call: CallbackQuery | Message
 ) -> schemas.Client | None:
-    request_schema = schemas.CreateClientRequest(server=server_id, type=client_type)
+    request_schema = schemas.CreateClientRequest(server_id=server_id, type=client_type)
     try:
         async with CyberNexVPNClient() as api_client:
             return await api_client.create_client(user_id, request_schema)

@@ -1,7 +1,5 @@
 import logging
 import os
-import random
-from operator import or_
 
 import qrcode
 from aiofiles import tempfile
@@ -9,15 +7,23 @@ from aiogram import Dispatcher, Router, F
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, CommandObject, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import FSInputFile, InputFile, Message
+from aiogram.types import FSInputFile, Message
 from aiogram.types.callback_query import CallbackQuery
 from aiogram.utils.media_group import MediaGroupBuilder
 from dateutil.relativedelta import relativedelta
 
 from cybernexvpn.cybernexvpn_bot import config
-from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import *
+from cybernexvpn.cybernexvpn_bot.bot.keyboards.buttons_storage import ButtonsStorage
+from cybernexvpn.cybernexvpn_bot.bot.keyboards.factories import DevicesCallbackFactory, PostAdditionDeviceFactory, \
+    ServersCallbackFactory, AddDeviceFactory, EditDeviceTypeCallbackFactory, FillUpBalanceFactory
+from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import get_first_usage_keyboard, get_main_menu_keyboard, \
+    get_devices_keyboard, get_specific_device_keyboard, get_choose_device_type_keyboard, \
+    get_post_adding_device_keyboard, get_back_to_main_menu_keyboard, get_servers_keyboard, get_specific_server_keyboard, \
+    get_edit_device_keyboard, get_cancel_state_keyboard, get_delete_device_confirmation_keyboard, get_finance_callback, \
+    get_fill_up_balance_values_keyboard, get_payment_url_keyboard
 from cybernexvpn.cybernexvpn_bot.bot.models import PaymentModel
-from cybernexvpn.cybernexvpn_bot.bot.utils import states
+from cybernexvpn.cybernexvpn_bot.bot.states import states
+from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.clients import (
     get_user_clients,
     create_client,
@@ -44,7 +50,9 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_client_data, \
     check_user_balance_for_new_client, edit_safely, delete_message_or_delete_markup, save_payment_to_redis, \
     generate_invitation_link, get_filename
-from cybernexvpn.cybernexvpn_bot.bot.utils.filters import MainMenuFilter
+from cybernexvpn.cybernexvpn_bot.bot.filters import MainMenuFilter
+from cybernexvpn.cybernexvpn_client import schemas
+from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 
 dp = Dispatcher()
 router = Router()
@@ -103,6 +111,16 @@ async def handle_main_menu_callback(call: CallbackQuery):
     keyboard = get_main_menu_keyboard()
 
     if call.data != ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.callback:
+
+        if call.message.photo:
+            await call.message.delete()
+
+            await call.message.answer(
+                text=text,
+                reply_markup=keyboard,
+            )
+            return
+
         await call.message.edit_text(
             text=text,
             reply_markup=keyboard,
@@ -200,6 +218,62 @@ async def handle_get_connection_data_query(
         await call.message.delete()
 
 
+async def send_config_file(call, client: schemas.Client, data: str):
+
+    filename = get_filename(client)
+
+    async with tempfile.NamedTemporaryFile(
+            mode="w+", delete=True
+    ) as temp_file:
+        await temp_file.write(data)
+        await temp_file.flush()
+
+        await call.message.answer_document(
+            document=FSInputFile(temp_file.name, filename=filename),
+        )
+
+
+async def iphone_send_connection_data(call: CallbackQuery):
+
+    caption = new_text_storage.IPHONE_CONNECTION_INSTRUCTION
+    photos_dir = config.IPHONE_INSTRUCTION_PATH
+
+    media_group = MediaGroupBuilder()
+    photos = sorted(os.listdir(photos_dir))
+    for ind, photo in enumerate(photos):
+        media_data = {
+            "media": FSInputFile(photos_dir / photo),
+        }
+        if ind == len(photos) - 1:
+            media_data["caption"] = caption
+            media_data["parse_mode"] = ParseMode.HTML
+        media_group.add_photo(**media_data)
+
+    await call.message.answer_media_group(
+        media=media_group.build(),
+        disable_web_page_preview=True,
+    )
+
+
+async def android_send_connection_data(call: CallbackQuery, client: schemas.Client, data: str):
+
+    async with tempfile.NamedTemporaryFile(
+        delete=True, suffix=".png", dir="./"
+    ) as temp_file:
+        qr = qrcode.make(data)
+        temp_file_path = temp_file.name
+        qr.save(temp_file_path)
+
+        await call.message.answer_photo(
+            photo=FSInputFile(temp_file_path),
+            caption=new_text_storage.ANDROID_CONNECTION_INSTRUCTION,
+            reply_markup=get_post_adding_device_keyboard(client, without_qr_alternative=True),
+            parse_mode=ParseMode.HTML
+        )
+
+        await temp_file.flush()
+
+
 async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> bool:
     config_file_data = await get_config_file(
         user_id=call.from_user.id, client_id=client.id, call=call
@@ -208,103 +282,46 @@ async def send_connection_data(call: CallbackQuery, client: schemas.Client) -> b
     if not config_file_data:
         return False
 
-    filename = get_filename(client)  # todo
-
     try:
-        async with tempfile.NamedTemporaryFile(
-                mode="w+", delete=True
-        ) as temp_file:
-            await temp_file.write(config_file_data)
-            await temp_file.flush()
+        if client.type == ClientTypeEnum.ANDROID:
+            await android_send_connection_data(call, client, config_file_data)
+            return True
 
-            await call.bot.send_document(
-                chat_id=call.from_user.id,
-                document=FSInputFile(temp_file.name, filename=filename),
+        await send_config_file(call, client, config_file_data)
+
+        if client.type == ClientTypeEnum.IPHONE:
+            await iphone_send_connection_data(call)
+
+        else:
+            text = new_text_storage.WINDOWS_CONNECTION_INSTRUCTION if client.type == ClientTypeEnum.WINDOWS else new_text_storage.MACOS_CONNECTION_INSTRUCTION
+            await call.message.answer(
+                text=text,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
             )
+
+        await call.message.answer(
+            text=new_text_storage.IS_EVERYTHING_OK,
+            reply_markup=get_post_adding_device_keyboard(client)
+        )
+        return True
+
     except Exception as e:
-        logger.error("Error while sending config data", exc_info=e)
+        logger.error("Error while sending phone connection data", exc_info=e)
         await call.message.edit_text(
             new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
             reply_markup=get_back_to_main_menu_keyboard(),
         )
         return False
 
-    if client.type in [ClientTypeEnum.IPHONE, ClientTypeEnum.ANDROID]:
-        if client.type == ClientTypeEnum.IPHONE:
-            caption = new_text_storage.IPHONE_CONNECTION_INSTRUCTION
-            photos_dir = config.IPHONE_INSTRUCTION_PATH
-        else:
-            caption = new_text_storage.ANDROID_CONNECTION_INSTRUCTION
-            photos_dir = config.IPHONE_INSTRUCTION_PATH  # todo
-
-        media_group = MediaGroupBuilder()
-        photos = sorted(os.listdir(photos_dir))
-        for ind, photo in enumerate(photos):
-            media_data = {
-                "media": FSInputFile(photos_dir / photo),
-            }
-            if ind == len(photos) - 1:
-                media_data["caption"] = caption
-                media_data["parse_mode"] = ParseMode.HTML
-            media_group.add_photo(**media_data)
-
-        await call.message.answer_media_group(
-            media=media_group.build(),
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
-
-        await call.message.answer(
-            text=new_text_storage.IS_EVERYTHING_OK,
-            reply_markup=get_post_adding_device_keyboard(client)
-        )
-
-        return True
-
-    elif client.type == ClientTypeEnum.WINDOWS:
-        text = new_text_storage.WINDOWS_CONNECTION_INSTRUCTION
-    else:
-        text = new_text_storage.MACOS_CONNECTION_INSTRUCTION
-
-    await call.message.answer(
-        text=text,
-        parse_mode=ParseMode.HTML,
-        disable_web_page_preview=True,
-        reply_markup=get_post_adding_device_keyboard(client)
-    )
-    return True
-
 
 @router.callback_query(
     PostAdditionDeviceFactory.filter(
-        F.step == 1
+        F.callback == ButtonsStorage.WITHOUT_QR.callback  # noqa
     )
 )
-async def handle_post_adding_device_query(call: CallbackQuery, callback_data: PostAdditionDeviceFactory):
-    client = await get_client(call.from_user.id, callback_data.client_id, call)
-    if not client:
-        return
+async def handle_without_qr_query(call: CallbackQuery, callback_data: PostAdditionDeviceFactory):
 
-    if client.type == ClientTypeEnum.ANDROID:
-        await call.message.edit_text(
-            new_text_storage.ANDROID_ALTERNATIVES,
-            reply_markup=get_what_is_wrong_2_keyboard(client),
-            parse_mode=ParseMode.HTML,
-        )
-    else:
-        await call.message.edit_text(
-            new_text_storage.TEXT_ME,
-            reply_markup=get_back_to_main_menu_keyboard(with_new_message=True),
-            parse_mode=ParseMode.HTML,
-        )
-
-
-@router.callback_query(
-    PostAdditionDeviceFactory.filter(
-        F.step == 3
-    )
-)
-async def handle_get_qr_query(call: CallbackQuery, callback_data: PostAdditionDeviceFactory):
     client = await get_client(call.from_user.id, callback_data.client_id, call)
     if not client:
         return
@@ -320,45 +337,36 @@ async def handle_get_qr_query(call: CallbackQuery, callback_data: PostAdditionDe
         reply_markup=None
     )
 
-    try:
-        async with tempfile.NamedTemporaryFile(
-            delete=True, suffix=".png", dir="./"
-        ) as temp_file:
-            qr = qrcode.make(config_file_data)
-            temp_file_path = temp_file.name
-            qr.save(temp_file_path)
+    await send_config_file(call, client, config_file_data)
 
-            await call.message.answer_photo(
-                photo=FSInputFile(temp_file_path),
-                caption=new_text_storage.QR_CODE_INSTRUCTION,
-            )
-            await call.message.answer(
-                text=new_text_storage.IS_EVERYTHING_OK_2,
-                reply_markup=get_what_is_wrong_3_keyboard(),
-                parse_mode=ParseMode.HTML,
-            )
-
-            await temp_file.flush()
-
-        return
-
-    except Exception as e:
-        logger.error("Error while sending qr code", exc_info=e)
-        await call.message.edit_text(
-            new_text_storage.SOMETHING_WENT_WRONG_ERROR_MSG,
-            reply_markup=get_back_to_main_menu_keyboard(),
-        )
-        return
-
-
-@router.callback_query(F.data == ButtonsStorage.ANOTHER_PROBLEM.callback)
-async def handle_adding_device_problem_query(call: CallbackQuery):
-
-    await call.message.edit_text(
-        new_text_storage.TEXT_ME,
-        reply_markup=get_back_to_main_menu_keyboard(with_new_message=True),
+    await call.message.answer(
+        text=new_text_storage.ANDROID_ALTERNATIVES,
+        reply_markup=get_post_adding_device_keyboard(client),
         parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
     )
+
+
+@router.callback_query(
+    PostAdditionDeviceFactory.filter()
+)
+async def handle_post_adding_device_query(call: CallbackQuery, callback_data: PostAdditionDeviceFactory):
+    client = await get_client(call.from_user.id, callback_data.client_id, call)
+    if not client:
+        return
+
+    msg_data = {
+        "text": new_text_storage.TEXT_ME,
+        "reply_markup": get_back_to_main_menu_keyboard(with_new_message=True),
+        "parse_mode": ParseMode.HTML
+    }
+
+    if call.message.photo:
+        await call.message.edit_reply_markup(reply_markup=None)
+        await call.message.answer(**msg_data)
+        return
+
+    await call.message.edit_text(**msg_data)
 
 
 @router.callback_query(
@@ -756,7 +764,7 @@ async def handle_fill_up_balance_query(call: CallbackQuery):
     from_admin = call.from_user.id == config.ADMIN_USER_ID
     await call.message.edit_text(
         new_text_storage.CHOOSE_SUM_TO_FILL_UP_BALANCE,
-        reply_markup=get_fill_up_balance_keyboard(from_admin),
+        reply_markup=get_fill_up_balance_values_keyboard(from_admin),
     )
 
 

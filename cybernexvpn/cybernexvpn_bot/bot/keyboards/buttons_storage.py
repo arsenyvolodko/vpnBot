@@ -40,14 +40,10 @@ class ButtonsTextStorage(ABC):
 
     REACTIVATE_DEVICE = "Возобновить подписку 🔄"
 
+    WITHOUT_QR = "Хочу без QR-кода"
+
     ADDING_DEVICE_PROBLEMS = "Что-то не так 🤔"
     ADDING_DEVICE_OK = "Все работает 🎉"
-
-    GET_VIDEO_INSTRUCTION = "Видео-инструкция 🎬"
-
-    CANNOT_ADD_DEVICE = "1️⃣"
-    ADDED_DEVICE_DOES_NOT_WORK = "2️⃣"
-    ANOTHER_PROBLEM = "3️⃣"
 
 
 class AutoNameButtonMeta(type):
@@ -99,8 +95,4 @@ class ButtonsStorage(metaclass=AutoNameButtonMeta):
     ADDING_DEVICE_PROBLEMS = Button()
     ADDING_DEVICE_OK = Button()
 
-    CANNOT_ADD_DEVICE = Button()
-    ADDED_DEVICE_DOES_NOT_WORK = Button()
-    ANOTHER_PROBLEM = Button()
-
-    GET_VIDEO_INSTRUCTION = Button()
+    WITHOUT_QR = Button()

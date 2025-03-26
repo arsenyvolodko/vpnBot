@@ -2,6 +2,7 @@ import json
 import random
 
 from aiogram.types import Message, CallbackQuery
+from redis import RedisError
 
 from cybernexvpn.cybernexvpn_bot import config
 from cybernexvpn.cybernexvpn_bot.bot import models
@@ -47,7 +48,7 @@ async def get_client_data(client: schemas.Client):
         "status": (
             new_text_storage.ACTIVE if client.is_active else new_text_storage.INACTIVE
         ),
-        "server": client.server_name,
+        "server": client.server.name,
         "price": client.price,
         "type": client.type.label,
         "auto_renew": "✅" if client.auto_renew else "❌",
@@ -71,28 +72,11 @@ def get_payment_from_redis(payment_id: str) -> models.PaymentModel | None:
     return models.PaymentModel.parse_raw(payment)
 
 
-async def send_message_from_admin_util(message_schema):
-    if message_schema.only_to_me:
-        await send_safely(config.ADMIN_USER_ID, message_schema.text, parse_mode="HTML")
-    else:
-        users = await get_users()
-        if not users:
-            return
-
-        for user in users:
-            await send_safely(user.id, message_schema.text, parse_mode="HTML")
-
-
-async def handle_payment_succeeded_util(payment_id: str):
-    payment = get_payment_from_redis(payment_id)
-    if not payment:
-        return
-    await bot.edit_message_text(
-        chat_id=payment.user_id,
-        message_id=payment.message_id,
-        text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED.format(payment.value),
-        parse_mode="HTML",
-    )
+def delete_payment_from_redis(payment_id: str):
+    try:
+        r.delete(payment_id)
+    except RedisError:
+        pass
 
 
 async def check_user_balance_for_new_client(call: CallbackQuery, user: schemas.User, obj: schemas.Server | schemas.Client) -> bool:
@@ -109,5 +93,5 @@ def get_filename(client: schemas.Client) -> str:
     base_name = "cybernexvpn"
     if client.type == ClientTypeEnum.ANDROID:
         base_name = random.choice(new_text_storage.ANDROID_NAME_CHOICES)
-    return f"{base_name}.conf"
-
+    tag = client.server.tag
+    return f"{base_name}-{tag}.conf"

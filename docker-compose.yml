@@ -14,7 +14,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/usr/src/app
-    command: celery -A cybernexvpn_bot.core.celery.app worker --loglevel=info
+    command: celery -A cybernexvpn.cybernexvpn_bot.core.celery.app worker --loglevel=info --pool=solo
     depends_on:
       - redis
     restart: always

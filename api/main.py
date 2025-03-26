@@ -28,3 +28,14 @@ async def send_message_from_admin(
         "cybernexvpn.cybernexvpn_bot.tasks.tasks.send_message_from_admin",
         args=[message.model_dump()],
     )
+
+
+@app.post("/api/v1/make-subscription-updates/", status_code=200)
+async def make_subscription_updates(
+    updates: schemas.SubscriptionUpdates, x_api_key: str = Header(None)
+):
+    _check_api_key(x_api_key)
+    celery_app.send_task(
+        "cybernexvpn.cybernexvpn_bot.tasks.tasks.make_subscription_updates",
+        args=[updates.model_dump()],
+    )

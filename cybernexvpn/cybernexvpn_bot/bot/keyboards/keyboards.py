@@ -15,7 +15,7 @@ from cybernexvpn.cybernexvpn_bot.bot.keyboards.factories import (
     DevicesCallbackFactory,
     ServersCallbackFactory,
     AddDeviceFactory,
-    EditDeviceTypeCallbackFactory, PostAdditionDeviceFactory, GetVideoInstructionFactory,
+    EditDeviceTypeCallbackFactory, PostAdditionDeviceFactory,
 )
 
 
@@ -295,7 +295,13 @@ def get_edit_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_fill_up_balance_keyboard(from_admin=False) -> InlineKeyboardMarkup:
+def get_fill_up_balance_keyboard() -> InlineKeyboardMarkup:
+    return _construct_keyboard(
+        ButtonsStorage.FILL_UP_BALANCE,
+    )
+
+
+def get_fill_up_balance_values_keyboard(from_admin=False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     filling_up_values = FILLING_UP_VALUES.copy()
     if from_admin:
@@ -335,60 +341,26 @@ def get_payment_url_keyboard(payment_url: str) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_post_adding_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
+def get_post_adding_device_keyboard(client: schemas.Client, without_qr_alternative: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    if without_qr_alternative:
+        builder.button(
+            text=ButtonsStorage.WITHOUT_QR.text,
+            callback_data=PostAdditionDeviceFactory(
+                client_id=client.id,
+                callback=ButtonsStorage.WITHOUT_QR.callback,
+            )
+        )
     builder.button(
         text=ButtonsStorage.ADDING_DEVICE_PROBLEMS.text,
         callback_data=PostAdditionDeviceFactory(
             client_id=client.id,
-            step=1,
+            callback=ButtonsStorage.ADDING_DEVICE_PROBLEMS.callback,
         )
     )
     builder.button(
         text=ButtonsStorage.ADDING_DEVICE_OK.text,
         callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
     )
-    builder.adjust(1, 1)
-    return builder.as_markup()
-
-
-def get_what_is_wrong_2_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text=ButtonsStorage.GET_QR_CODE.text,
-        callback_data=PostAdditionDeviceFactory(
-            client_id=client.id,
-            step=3
-        )
-    )
-    builder.button(
-        text=ButtonsStorage.ADDING_DEVICE_OK.text,
-        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
-    )
-    builder.button(
-        text=ButtonsStorage.GO_BACK.text,
-        callback_data=PostAdditionDeviceFactory(
-            client_id=client.id,
-            step=1
-        )
-    )
-    builder.button(
-        text=ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.text,
-        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.callback
-    )
-    builder.adjust(1, 1, 2)
-    return builder.as_markup()
-
-
-def get_what_is_wrong_3_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text=ButtonsStorage.ADDING_DEVICE_OK.text,
-        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
-    )
-    builder.button(
-        text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
-        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback
-    )
-    builder.adjust(1, 1)
+    builder.adjust(1)
     return builder.as_markup()
