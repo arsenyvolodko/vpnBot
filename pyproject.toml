@@ -6,20 +6,19 @@ authors = ["Volodko Arseny <arvolodko@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-psycopg2-binary = "^2.9.9"
 python-dateutil = "^2.9.0"
-qrcode = "^7.4.2"
 python-dotenv = "^1.0.1"
-tqdm = "^4.66.2"
 yookassa = "^3.1.0"
 uvicorn = "^0.29.0"
 fastapi = "^0.110.2"
-sqlalchemy = "^2.0.29"
 asyncpg = "^0.29.0"
 aiogram = "^3.5.0"
 greenlet = "^3.0.3"
 celery = "^5.4.0"
 redis = "^5.0.6"
+django = "^5.1.7"
+qrcode = "^8.0"
+pillow = "^11.1.0"
 
 [tool.poetry.dev-dependencies]
 
