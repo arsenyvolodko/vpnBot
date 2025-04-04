@@ -1,12 +1,14 @@
+from aiogram.enums import ParseMode
+
 from cybernexvpn.cybernexvpn_bot import config
 from cybernexvpn.cybernexvpn_bot.bot import models
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import get_main_menu_keyboard, get_back_to_main_menu_keyboard, \
-     get_fill_up_balance_keyboard
+    get_fill_up_balance_keyboard, get_devices_reactivate_keyboard
 from cybernexvpn.cybernexvpn_bot.bot.models.subscription_updates import UserSubscriptionUpdates
 
-cybernexvpn.cybernexvpn_bot.bot.main import bot
-from cybernexvpn.cybernexvpn_bot.bot.models import SubscriptionUpdates
+from cybernexvpn.cybernexvpn_bot.bot.main import bot
 from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
+from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.clients import get_user_clients
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import get_users
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_payment_from_redis, delete_payment_from_redis
 
@@ -32,37 +34,64 @@ async def send_message_from_admin_util(message_schema: models.Message):
             )
 
 
-async def handle_payment_succeeded_util(payment_id: str):
+async def handle_payment_succeeded_util(user_id: int, payment_id: str):
     payment = get_payment_from_redis(payment_id)
-    if not payment:
-        return
-    await bot.edit_message_text(
-        chat_id=payment.user_id,
-        message_id=payment.message_id,
-        text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED.format(payment.value),
-        parse_mode="HTML",
-    )
-    await bot.send_message(
-        chat_id=payment.user_id,
-        text=new_text_storage.MAIN_MENU_TEXT,
-        reply_markup=get_main_menu_keyboard(),
-    )
     delete_payment_from_redis(payment_id)
 
-'''
-class UserSubscriptionUpdates(BaseModel):
-    user: int
-    renewed: list[str]
-    stopped_due_to_lack_of_funds: list[str]
-    stopped_due_to_offed_auto_renew: list[str]
-    deleted: list[str]
+    if payment:
+        await bot.edit_message_text(
+            chat_id=user_id,
+            message_id=payment.message_id,
+            text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED_WITH_VALUE.format(payment.value),
+            parse_mode=ParseMode.HTML,
+        )
+    else:
+        await send_safely(
+            chat_id=user_id,
+            text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED,
+        )
+        # await bot.send_message(
+        #     chat_id=user_id,
+        #     text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED,
+        # )
 
+    clients = await get_user_clients(user_id, None)
 
-class SubscriptionUpdates(BaseModel):
-    is_reminder: bool
-    updates: list[UserSubscriptionUpdates]
+    inactive_clients = [
+        client for client in clients if client.is_active is False and clients
+    ] if clients else []
 
-'''
+    if not inactive_clients:
+        await send_safely(
+            chat_id=user_id,
+            text=new_text_storage.MAIN_MENU_TEXT,
+            reply_markup=get_main_menu_keyboard(),
+        )
+        # await bot.send_message(
+        #     chat_id=user_id,
+        #     text=new_text_storage.MAIN_MENU_TEXT,
+        #     reply_markup=get_main_menu_keyboard(),
+        # )
+        return
+
+    text = new_text_storage.REACTIVATE_DEVICE_AFTER_FILL_UP \
+        if len(inactive_clients) == 1 \
+        else new_text_storage.REACTIVATE_DEVICES_AFTER_FILL_UP
+
+    await send_safely(
+        chat_id=user_id,
+        text=text,
+        reply_markup=get_devices_reactivate_keyboard(inactive_clients),
+        parse_mode=ParseMode.HTML,
+    )
+    #
+    #
+    # await bot.send_message(
+    #     chat_id=user_id,
+    #     text=text,
+    #     reply_markup=get_devices_reactivate_keyboard(inactive_clients),
+    #     parse_mode=ParseMode.HTML,
+    # )
 
 
 def get_reminder_text(renewed, stopped_due_to_lack_of_funds):
@@ -104,8 +133,12 @@ def get_information_text(renewed_clients, stopped_due_to_lack_of_funds):
     return information_text
 
 
-def send_balance_update_notification(user_updates: UserSubscriptionUpdates):
-    if user_updates.renewed:
+async def send_balance_update_notification(user_updates: UserSubscriptionUpdates):
+    if user_updates.renewed and user_updates.total_price:
+        await send_safely(
+            user_updates.user,
+            text=new_text_storage.FUNDS_DEBITED_SUM.format(user_updates.total_price),
+        )
 
 
 async def make_subscription_updates_util(updates: models.SubscriptionUpdates):
@@ -117,7 +150,7 @@ async def make_subscription_updates_util(updates: models.SubscriptionUpdates):
         if updates.is_reminder:
             text = get_reminder_text(user_updates.renewed, user_updates.stopped_due_to_lack_of_funds)
         else:
-            send_balance_update_notification(user_updates)
+            await send_balance_update_notification(user_updates)
             text = get_information_text(user_updates.renewed, user_updates.stopped_due_to_lack_of_funds)
 
         keyboard = get_fill_up_balance_keyboard() \

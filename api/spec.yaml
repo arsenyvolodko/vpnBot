@@ -3,7 +3,10 @@ info:
   title: Wireguard Server
   version: '1.0'
 servers:
-  - url: http://127.0.0.1:8080
+  - description: host
+    url: http://77.238.236.90:8888
+  - description: localhost
+    url: http://127.0.0.1:8888
 paths:
   /api/v1/send-message/:
     parameters:
@@ -25,7 +28,7 @@ paths:
       responses:
         200:
           description: Message sent
-  /api/v1/succeed-payment/{payment_id}:
+  /api/v1/succeed-payment/{user_id}/{payment_id}:
     parameters:
       - name: x-api-key
         in: header
@@ -33,6 +36,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: integer
       - name: payment_id
         in: path
         description: Payment ID
@@ -46,6 +55,26 @@ paths:
       responses:
         200:
           description: Payment Succeeded
+  /api/v1/make-subscription-updates/:
+    parameters:
+      - name: x-api-key
+        in: header
+        description: API Key for authentication
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Make subscription updates
+      tags:
+        - subscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionUpdates'
+      responses:
+        200:
+          description: Make subscription updates
 
 components:
   schemas:
@@ -54,7 +83,47 @@ components:
         - text
       properties:
         text:
-            type: string
+          type: string
         only_to_me:
-            type: boolean
-            default: true
+          type: boolean
+          default: true
+    UserSubscriptionUpdates:
+      required:
+        - user
+        - total_price
+        - renewed
+        - stopped_due_to_lack_of_funds
+        - stopped_due_to_offed_auto_renew
+        - deleted
+      properties:
+        user:
+          type: integer
+        total_price:
+          type: integer
+        renewed:
+          type: array
+          items:
+            type: string
+        stopped_due_to_lack_of_funds:
+          type: array
+          items:
+            type: string
+        stopped_due_to_offed_auto_renew:
+          type: array
+          items:
+            type: string
+        deleted:
+          type: array
+          items:
+            type: string
+    SubscriptionUpdates:
+      required:
+        - is_reminder
+        - updates
+      properties:
+        is_reminder:
+          type: boolean
+        updates:
+          type: array
+          items:
+              $ref: '#/components/schemas/UserSubscriptionUpdates'

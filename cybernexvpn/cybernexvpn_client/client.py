@@ -58,7 +58,7 @@ class CyberNexVPNClient:
 
     async def _make_request(self, request: schemas.Request, text=False) -> str | dict[str, Any] | list[dict[str, Any]]:
         try:
-            request.headers["x-api-key"] = self._api_key
+            request.headers["X-API-KEY"] = self._api_key
             request_data = request.model_dump(by_alias=True)
             kwargs = {**request_data, "url": str(request.url)}
 

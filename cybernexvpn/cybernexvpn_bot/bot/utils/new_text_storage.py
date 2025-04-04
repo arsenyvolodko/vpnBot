@@ -111,9 +111,18 @@ DEVICE_SUCCESSFULLY_REACTIVATED = (
     "Подписка на устройство успешно возобновлена! С твоего счета списано {}₽"
 )
 TO_PAY_BTN_LINK_TEXT = "Оплатить"
-PAYMENT_SUCCESSFULLY_PROCESSED = "Твой баланс успешно пополнен на {}₽"
+PAYMENT_SUCCESSFULLY_PROCESSED = "Твой баланс успешно пополнен!"
+PAYMENT_SUCCESSFULLY_PROCESSED_WITH_VALUE = "Твой баланс успешно пополнен на {}₽"
+FUNDS_DEBITED_SUM = "С твоего счета успешно списано {}₽"
+
 
 GETTiNG_CONNECTION_DATA = "Получаю данные.."
+
+REACTIVATE_DEVICE_AFTER_FILL_UP = ("У тебя неактивна подписка на одно устройство."
+                                   "<b>Для того, чтобы возобновить подписку, нажми на это устройство ниже</b>")
+
+REACTIVATE_DEVICES_AFTER_FILL_UP = ("У тебя неактивна подписка на несколько устройств.\n"
+                                   "<b>Для того, чтобы возобновить подписку на устройство, выбери его из списка ниже</b>")
 
 WINDOWS_CONNECTION_INSTRUCTION = (
     '1️⃣Скачай <a href="https://www.wireguard.com/install/">приложение</a> Wireguard\n'

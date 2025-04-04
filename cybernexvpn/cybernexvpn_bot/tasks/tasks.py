@@ -10,19 +10,20 @@ logger = logging.getLogger(__name__)
 
 
 @app.task
-def send_message_from_admin(request_dict: models.Message):
-    message = models.Message.model_validate(request_dict)
+def send_message_from_admin(message_dict: dict):
+    message = models.Message.model_validate(message_dict)
     logger.info(f"Sending message from admin task: {message}")
     return loop.run_until_complete(send_message_from_admin_util(message))
 
 
 @app.task
-def handle_payment_succeeded(payment_id: str):
-    logger.info(f"Handling payment succeeded task: {payment_id}")
-    return loop.run_until_complete(handle_payment_succeeded_util(payment_id))
+def handle_payment_succeeded(user_id: int, payment_id: str):
+    logger.info(f"Handling payment succeeded task for user: {user_id}, payment: {payment_id}")
+    return loop.run_until_complete(handle_payment_succeeded_util(user_id, payment_id))
 
 
 @app.task
-def make_subscription_updates(updates: models.SubscriptionUpdates):
+def make_subscription_updates(updates_dict: dict):
+    updates = models.SubscriptionUpdates.model_validate(updates_dict)
     logger.info(f"Making subscription updates task: {updates}")
     return loop.run_until_complete(make_subscription_updates_util(updates))

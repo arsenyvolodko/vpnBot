@@ -295,10 +295,36 @@ def get_edit_device_keyboard(client: schemas.Client) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_fill_up_balance_keyboard() -> InlineKeyboardMarkup:
-    return _construct_keyboard(
-        ButtonsStorage.FILL_UP_BALANCE,
+def get_devices_reactivate_keyboard(clients: list[schemas.Client]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for client in clients:
+        builder.button(
+            text=_get_client_button_text(client),
+            callback_data=DevicesCallbackFactory(
+                callback=ButtonsStorage.REACTIVATE_DEVICE.callback,
+                id=client.id,
+            ),
+        )
+    builder.button(
+        text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
+        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback,
     )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_fill_up_balance_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=ButtonsStorage.FILL_UP_BALANCE.text,
+        callback_data=ButtonsStorage.FILL_UP_BALANCE.callback,
+    )
+    builder.button(
+        text=ButtonsStorage.GO_BACK_TO_MAIN_MENU.text,
+        callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback,
+    )
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def get_fill_up_balance_values_keyboard(from_admin=False) -> InlineKeyboardMarkup:

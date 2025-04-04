@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class UserSubscriptionUpdates(BaseModel):
     user: int
+    total_price: int
     renewed: list[str]
     stopped_due_to_lack_of_funds: list[str]
     stopped_due_to_offed_auto_renew: list[str]

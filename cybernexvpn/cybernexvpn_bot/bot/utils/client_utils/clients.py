@@ -19,12 +19,13 @@ async def get_client(user_id: int, client_id: int, call: CallbackQuery | Message
         await edit_with_error(call, str(e))
 
 
-async def get_user_clients(user_id: int, call: CallbackQuery | Message) -> list[schemas.Client] | None:
+async def get_user_clients(user_id: int, call: CallbackQuery | Message = None) -> list[schemas.Client] | None:
     try:
         async with CyberNexVPNClient() as api_client:
             return await api_client.get_clients(user_id)
     except errors.ClientBaseError as e:
-        await edit_with_error(call, str(e))
+        if call:
+            await edit_with_error(call, str(e))
 
 
 async def create_client(

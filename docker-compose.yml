@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - ./cybernexvpn/.env
     command: python3 /app/cybernexvpn/cybernexvpn_bot/bot/main.py
 
   celery:
@@ -14,10 +14,10 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/usr/src/app
-    command: celery -A cybernexvpn.cybernexvpn_bot.core.celery.app worker --loglevel=info --pool=solo
+    restart: always
     depends_on:
       - redis
-    restart: always
+    command: celery -A cybernexvpn.cybernexvpn_bot.core.celery.app worker --loglevel=info --pool=solo
 
   api:
     build:
@@ -25,16 +25,16 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/usr/src/app
-    command: uvicorn api.main:app --host 0.0.0.0 --port ${FAST_API_PORT}
+    ports:
+      - "8888:8888"
     depends_on:
       - redis
-    ports:
-      - "${FAST_API_PORT}:${FAST_API_PORT}"
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8888
 
   redis:
     image: "redis:alpine"
     ports:
-      - "6379:6379"
+      - "6379"
     restart: on-failure
     volumes:
       - redis_data:/data
