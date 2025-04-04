@@ -4,5 +4,5 @@
 .DS_Store
 __pycache__/
 .env
-.env.stage
+.env*
 migrations/
