@@ -1,3 +1,5 @@
+import logging
+
 from aiogram.enums import ParseMode
 
 from cybernexvpn.cybernexvpn_bot import config
@@ -11,6 +13,8 @@ from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.clients import get_user_clients
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import get_users
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_payment_from_redis, delete_payment_from_redis
+
+logger = logging.getLogger(__name__)
 
 
 async def send_message_from_admin_util(message_schema: models.Message):
@@ -50,10 +54,6 @@ async def handle_payment_succeeded_util(user_id: int, payment_id: str):
             chat_id=user_id,
             text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED,
         )
-        # await bot.send_message(
-        #     chat_id=user_id,
-        #     text=new_text_storage.PAYMENT_SUCCESSFULLY_PROCESSED,
-        # )
 
     clients = await get_user_clients(user_id, None)
 
@@ -67,11 +67,6 @@ async def handle_payment_succeeded_util(user_id: int, payment_id: str):
             text=new_text_storage.MAIN_MENU_TEXT,
             reply_markup=get_main_menu_keyboard(),
         )
-        # await bot.send_message(
-        #     chat_id=user_id,
-        #     text=new_text_storage.MAIN_MENU_TEXT,
-        #     reply_markup=get_main_menu_keyboard(),
-        # )
         return
 
     text = new_text_storage.REACTIVATE_DEVICE_AFTER_FILL_UP \
@@ -84,20 +79,12 @@ async def handle_payment_succeeded_util(user_id: int, payment_id: str):
         reply_markup=get_devices_reactivate_keyboard(inactive_clients),
         parse_mode=ParseMode.HTML,
     )
-    #
-    #
-    # await bot.send_message(
-    #     chat_id=user_id,
-    #     text=text,
-    #     reply_markup=get_devices_reactivate_keyboard(inactive_clients),
-    #     parse_mode=ParseMode.HTML,
-    # )
 
 
 def get_reminder_text(renewed, stopped_due_to_lack_of_funds):
     reminder_text = (
         "🔔 Напоминание о продлении подписки\n\n"
-        "Завтра день продления подписки для следующих устройств: {}\n."
+        "Завтра день продления подписки для следующих устройств: {}.\n"
     )
     reminder_text2 = (
         "Не забудь пополнить баланс, иначе подписка будет приостановлена для следующих устройств: {}\n"
@@ -144,6 +131,7 @@ async def send_balance_update_notification(user_updates: UserSubscriptionUpdates
 async def make_subscription_updates_util(updates: models.SubscriptionUpdates):
 
     for user_updates in updates.updates:
+        logger.info("sending updates to user: %s", user_updates.user)
         if not (user_updates.renewed or user_updates.stopped_due_to_lack_of_funds):
             continue
 
