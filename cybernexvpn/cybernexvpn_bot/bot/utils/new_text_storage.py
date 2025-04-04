@@ -118,7 +118,7 @@ FUNDS_DEBITED_SUM = "С твоего счета успешно списано {}
 
 GETTiNG_CONNECTION_DATA = "Получаю данные.."
 
-REACTIVATE_DEVICE_AFTER_FILL_UP = ("У тебя неактивна подписка на одно устройство."
+REACTIVATE_DEVICE_AFTER_FILL_UP = ("У тебя неактивна подписка на одно устройство.\n"
                                    "<b>Для того, чтобы возобновить подписку, нажми на это устройство ниже</b>")
 
 REACTIVATE_DEVICES_AFTER_FILL_UP = ("У тебя неактивна подписка на несколько устройств.\n"
