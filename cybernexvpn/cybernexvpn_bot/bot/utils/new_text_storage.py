@@ -21,7 +21,7 @@ CHOOSE_DEVICE_TYPE = "Выбери тип устройства:"
 
 CHOOSE_DEVICE = "Выбери устройство:"
 
-CHOOSE_REGION = "Выбери страну:"
+CHOOSE_REGION = "Выбери страну VPN:"
 
 USER_NOT_FOUND_ERROR_MSG = (
     "Упс! Кажется что-то пошло не так. Попробуй набрать команду /start"
