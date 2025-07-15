@@ -440,6 +440,7 @@ async def handle_query(call: CallbackQuery):
     await call.message.edit_text(
         text=text,
         reply_markup=keyboard,
+        parse_mode=ParseMode.HTML
     )
 
 
