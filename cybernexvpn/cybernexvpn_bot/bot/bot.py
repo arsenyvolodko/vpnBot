@@ -486,11 +486,26 @@ async def handle_add_device_choose_type_query(
 
 @router.callback_query(AddDeviceFactory.filter())
 async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceFactory):
+
+    await call.message.edit_text(
+        new_text_storage.CHECKING_ADDING_DATA
+    )
+
     user = await get_user(call.from_user.id, call)
     server = await get_server(callback_data.id, call)
 
     if not user or not server or not await check_user_balance_for_new_client(call, user, server):
+        await call.message.edit_text(
+            new_text_storage.NOT_ENOUGH_MONEY_ERROR_MSG.format(user.balance),
+            reply_markup=get_back_to_main_menu_keyboard(
+                with_new_message=True
+            )
+        )
         return
+
+    await call.message.answer(
+        new_text_storage.ADDING_DEVICE,
+    )
 
     client = await create_client(
         call.from_user.id, callback_data.id, callback_data.type, call
@@ -709,6 +724,9 @@ async def handle_query(call: CallbackQuery, callback_data: DevicesCallbackFactor
 async def handle_delete_device_confirmation_query(
         call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
+    await call.message.edit_text(
+        new_text_storage.DELETING_DEVICE
+    )
     deleted = await delete_client(call.from_user.id, callback_data.id, call)
 
     if not deleted:
