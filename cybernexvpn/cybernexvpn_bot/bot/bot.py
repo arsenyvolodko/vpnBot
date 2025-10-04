@@ -375,7 +375,7 @@ async def handle_post_adding_device_query(call: CallbackQuery, callback_data: Po
     )
 )
 async def handle_reactivate_device_query(
-        call: CallbackQuery, callback_data: DevicesCallbackFactory
+    call: CallbackQuery, callback_data: DevicesCallbackFactory
 ):
     client = await get_client(call.from_user.id, callback_data.id, call)
     if not client:
@@ -384,6 +384,11 @@ async def handle_reactivate_device_query(
     client_was_active = client.is_active
 
     if not client.is_active:
+
+        await call.message.edit_text(
+            text=new_text_storage.REACTIVATING_DEVICE
+        )
+
         user = await get_user(call.from_user.id, call)
         if not user:
             return
@@ -395,8 +400,9 @@ async def handle_reactivate_device_query(
         if not client:
             return
 
-        await call.message.edit_text(
-            new_text_storage.DEVICE_SUCCESSFULLY_REACTIVATED.format(client.price),
+        await call.bot.send_message(
+            chat_id=call.from_user.id,
+            text=new_text_storage.DEVICE_SUCCESSFULLY_REACTIVATED.format(client.price)
         )
 
     data = await get_client_data(client)
@@ -454,6 +460,11 @@ async def handle_choose_server_query(
     server = await get_server(server_id, call)
     if not server:
         return
+
+    if not server.has_available_ips:
+        await call.answer(
+            text=new_text_storage.SERVER_HAS_NO_FREE_IPS
+        )
 
     await call.message.edit_text(
         text=new_text_storage.SERVER_DESCRIPTION.format(

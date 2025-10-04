@@ -6,3 +6,4 @@ class Server(BaseModel):
     name: str
     price: int
     tag: str
+    has_available_ips: bool
