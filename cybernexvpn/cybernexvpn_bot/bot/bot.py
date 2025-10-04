@@ -463,8 +463,10 @@ async def handle_choose_server_query(
 
     if not server.has_available_ips:
         await call.answer(
-            text=new_text_storage.SERVER_HAS_NO_FREE_IPS
+            text=new_text_storage.SERVER_HAS_NO_FREE_IPS,
+            show_alert=True
         )
+        return
 
     await call.message.edit_text(
         text=new_text_storage.SERVER_DESCRIPTION.format(
