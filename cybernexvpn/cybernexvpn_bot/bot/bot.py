@@ -516,7 +516,7 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
         )
         return
 
-    await call.message.answer(
+    msg_to_edit = await call.message.answer(
         new_text_storage.ADDING_DEVICE,
     )
 
@@ -527,7 +527,7 @@ async def handle_add_device_query(call: CallbackQuery, callback_data: AddDeviceF
     if not client:
         return
 
-    await call.message.edit_text(
+    await msg_to_edit.edit_text(
         new_text_storage.DEVICE_SUCCESSFULLY_ADDED,
     )
 
