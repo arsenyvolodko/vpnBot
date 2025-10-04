@@ -18,8 +18,8 @@ ADMIN_TG_URL = os.environ.get("ADMIN_URL", "https://t.me/arseny_volodko")
 BOT_URL = os.environ.get("BOT_URL", "https://t.me/CyberNexVpnBot")
 BOT_ID = int(os.environ.get("BOT_ID"))
 
-START_BALANCE = 100
+START_BALANCE = 150
 INVITATION_BONUS = 50
-FILLING_UP_VALUES = [100, 200, 300, 500, 700, 1000]
+FILLING_UP_VALUES = [100, 150, 300, 500, 700, 1000]
 INSTRUCTION_PATH = BOT_DIR / "instructions"
 IPHONE_INSTRUCTION_PATH = INSTRUCTION_PATH / "iphone"
