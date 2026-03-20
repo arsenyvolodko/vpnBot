@@ -18,14 +18,14 @@ class Configuration(object):
 
     api_url = None
     api_key = None
-    timeout = 10
+    timeout = 15
     logger = None
 
     @staticmethod
     def configure(api_url: str, api_key: str, logger=None, **kwargs):
         Configuration.api_url = api_url
         Configuration.api_key = api_key
-        Configuration.timeout = kwargs.get("timeout", 10)
+        Configuration.timeout = kwargs.get("timeout", 15)
         Configuration.configure_logger(logger)
 
         Configuration.assert_has_api_credentials()
@@ -41,7 +41,6 @@ class Configuration(object):
         configuration.configure(
             api_key=os.environ.get("CYBERNEXVPN_CLIENT_API_KEY"),
             api_url=os.environ.get("CYBERNEXVPN_CLIENT_API_URL"),
-            # logger=Configuration.logger,
             **kwargs
         )
         return configuration
