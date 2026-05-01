@@ -52,6 +52,7 @@ async def send_pinned_message_from_admin_util(message_schema: models.PinnedMessa
             chat_id=user.id,
             text=message_schema.text,
             parse_mode="HTML",
+            disable_notification=False,
             reply_markup=get_web_panel_keyboard(user.token),
         )
 
