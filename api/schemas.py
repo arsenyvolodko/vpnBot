@@ -6,6 +6,11 @@ class Message(BaseModel):
     only_to_me: bool = True
 
 
+class PinnedMessage(BaseModel):
+    text: str
+    only_to_me: bool = True
+
+
 class UserSubscriptionUpdates(BaseModel):
     user: int
     total_price: int

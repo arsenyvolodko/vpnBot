@@ -1,10 +1,11 @@
 import asyncio
-import logging
-import sys
 
 from aiogram import Bot
 
 from cybernexvpn.cybernexvpn_bot.config import BOT_TOKEN
+from cybernexvpn.cybernexvpn_bot.logging_config import setup_logging
+
+setup_logging()
 
 
 async def main() -> None:
@@ -18,5 +19,4 @@ loop = asyncio.new_event_loop()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     loop.run_until_complete(main())

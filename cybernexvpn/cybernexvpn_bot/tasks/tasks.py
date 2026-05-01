@@ -2,7 +2,7 @@ import logging
 
 from cybernexvpn.cybernexvpn_bot.bot import models
 from cybernexvpn.cybernexvpn_bot.bot.utils.tasks_utils import send_message_from_admin_util, \
-    handle_payment_succeeded_util, make_subscription_updates_util
+    handle_payment_succeeded_util, make_subscription_updates_util, send_pinned_message_from_admin_util
 from cybernexvpn.cybernexvpn_bot.bot.main import loop
 from cybernexvpn.cybernexvpn_bot.core.celery import app
 
@@ -14,6 +14,13 @@ def send_message_from_admin(message_dict: dict):
     message = models.Message.model_validate(message_dict)
     logger.info(f"Sending message from admin task: {message}")
     return loop.run_until_complete(send_message_from_admin_util(message))
+
+
+@app.task
+def send_pinned_message_from_admin(message_dict: dict):
+    message = models.PinnedMessage.model_validate(message_dict)
+    logger.info(f"Sending pinned message from admin task: {message}")
+    return loop.run_until_complete(send_pinned_message_from_admin_util(message))
 
 
 @app.task

@@ -1,3 +1,4 @@
+import logging
 import typing as tp
 from typing import Any
 
@@ -9,16 +10,12 @@ from cybernexvpn.cybernexvpn_client import schemas
 from cybernexvpn.cybernexvpn_client.configuration import Configuration
 from cybernexvpn.cybernexvpn_client.enums import MethodEnum
 
-import logging
-
 from cybernexvpn.cybernexvpn_client.errors import (
     NotFoundError,
     InvalidRequestDataError,
     ClientBaseError,
 )
 from cybernexvpn.cybernexvpn_client.schemas import CreatePaymentRequest
-
-logging.basicConfig(level=logging.INFO)
 
 T = tp.TypeVar("T", bound=BaseModel)
 
@@ -146,6 +143,20 @@ class CyberNexVPNClient:
         )
         user = await self._make_request(request)
         return self.validate_model(schemas.User, user)
+
+    async def patch_user(
+            self, user_id: int, request_schema: schemas.PatchUserRequest
+    ) -> schemas.User:
+        request = schemas.Request(
+            url=f"{self._base_url}/users/{user_id}/",
+            method=MethodEnum.PATCH,
+            json=request_schema.model_dump(exclude_unset=True),
+        )
+        try:
+            user = await self._make_request(request)
+            return self.validate_model(schemas.User, user)
+        except NotFoundError:
+            raise NotFoundError(new_text_storage.USER_NOT_FOUND_ERROR_MSG)
 
     ### Clients
 

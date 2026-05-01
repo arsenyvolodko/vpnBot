@@ -18,6 +18,8 @@ ADMIN_TG_URL = os.environ.get("ADMIN_URL", "https://t.me/arseny_volodko")
 BOT_URL = os.environ.get("BOT_URL", "https://t.me/CyberNexVpnBot")
 BOT_ID = int(os.environ.get("BOT_ID"))
 
+PANEL_URL = os.environ.get("PANEL_URL", "https://cybernexvpn.ru")
+
 START_BALANCE = 150
 INVITATION_BONUS = 50
 FILLING_UP_VALUES = [100, 150, 300, 500, 700, 1000]

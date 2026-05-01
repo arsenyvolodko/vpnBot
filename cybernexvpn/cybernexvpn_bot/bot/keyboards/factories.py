@@ -32,5 +32,3 @@ class AddDeviceFactory(CallbackData, prefix="add_device_factory"):
 class PostAdditionDeviceFactory(CallbackData, prefix="post_addition_device_factory"):
     client_id: int
     callback: str
-
-

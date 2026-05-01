@@ -5,14 +5,15 @@ from aiogram.enums import ParseMode
 from cybernexvpn.cybernexvpn_bot import config
 from cybernexvpn.cybernexvpn_bot.bot import models
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import get_main_menu_keyboard, get_back_to_main_menu_keyboard, \
-    get_fill_up_balance_keyboard, get_devices_reactivate_keyboard
+    get_fill_up_balance_keyboard, get_devices_reactivate_keyboard, get_web_panel_keyboard
 from cybernexvpn.cybernexvpn_bot.bot.models.subscription_updates import UserSubscriptionUpdates
 
 from cybernexvpn.cybernexvpn_bot.bot.main import bot
 from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.clients import get_user_clients
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import get_users
-from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_payment_from_redis, delete_payment_from_redis
+from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_payment_from_redis, delete_payment_from_redis, \
+    send_and_pin
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,23 @@ async def send_message_from_admin_util(message_schema: models.Message):
                 user.id,
                 **kwargs
             )
+
+
+async def send_pinned_message_from_admin_util(message_schema: models.PinnedMessage):
+    users = await get_users()
+    if not users:
+        return
+
+    if message_schema.only_to_me:
+        users = [user for user in users if user.id == config.ADMIN_USER_ID]
+
+    for user in users:
+        await send_and_pin(
+            chat_id=user.id,
+            text=message_schema.text,
+            parse_mode="HTML",
+            reply_markup=get_web_panel_keyboard(user.token),
+        )
 
 
 async def handle_payment_succeeded_util(user_id: int, payment_id: str):

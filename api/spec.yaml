@@ -28,6 +28,26 @@ paths:
       responses:
         200:
           description: Message sent
+  /api/v1/send-pinned-message/:
+    parameters:
+      - name: x-api-key
+        in: header
+        description: API Key for authentication
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Send pinned message with web panel button to users
+      tags:
+        - message
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendPinnedMessageRequest'
+      responses:
+        200:
+          description: Pinned message sent
   /api/v1/succeed-payment/{user_id}/{payment_id}:
     parameters:
       - name: x-api-key
@@ -79,6 +99,15 @@ paths:
 components:
   schemas:
     SendMessageRequest:
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        only_to_me:
+          type: boolean
+          default: true
+    SendPinnedMessageRequest:
       required:
         - text
       properties:

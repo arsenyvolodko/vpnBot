@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from pydantic import BaseModel
 
 from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
-from cybernexvpn.cybernexvpn_bot.config import FILLING_UP_VALUES
+from cybernexvpn.cybernexvpn_bot.config import FILLING_UP_VALUES, PANEL_URL
 from cybernexvpn.cybernexvpn_client import schemas
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.button import Button
 from cybernexvpn.cybernexvpn_bot.bot.keyboards.buttons_storage import ButtonsStorage
@@ -349,6 +349,15 @@ def get_fill_up_balance_values_keyboard(from_admin=False) -> InlineKeyboardMarku
         callback_data=ButtonsStorage.GO_BACK_TO_MAIN_MENU.callback,
     )
     builder.adjust(1, 3, 3, 2) if from_admin else builder.adjust(3, 3, 2)
+    return builder.as_markup()
+
+
+def get_web_panel_keyboard(user_uuid: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=new_text_storage.WEB_PANEL_BTN_TEXT,
+        url=f"{PANEL_URL}/{user_uuid}",
+    )
     return builder.as_markup()
 
 

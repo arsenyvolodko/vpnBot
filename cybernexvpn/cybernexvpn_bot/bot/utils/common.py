@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 
 from aiogram.types import Message, CallbackQuery
@@ -13,6 +14,8 @@ from cybernexvpn.cybernexvpn_bot.core.redis_config import r
 from cybernexvpn.cybernexvpn_client import schemas
 from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 
+logger = logging.getLogger(__name__)
+
 
 async def send_safely(chat_id: int, text: str, **kwargs) -> bool:
     try:
@@ -20,6 +23,16 @@ async def send_safely(chat_id: int, text: str, **kwargs) -> bool:
         return True
     except Exception:
         return False
+
+
+async def send_and_pin(chat_id: int, text: str, disable_notification: bool = True, **kwargs) -> Message | None:
+    try:
+        message = await bot.send_message(chat_id=chat_id, text=text, **kwargs)
+        await bot.pin_chat_message(chat_id=chat_id, message_id=message.message_id, disable_notification=disable_notification)
+        return message
+    except Exception:
+        logger.error("Failed to send and pin message", exc_info=True)
+        return None
 
 
 async def edit_safely(chat_id: int, message_id: int, text: str, **kwargs) -> bool:

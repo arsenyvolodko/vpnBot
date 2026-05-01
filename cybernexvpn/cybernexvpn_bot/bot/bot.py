@@ -20,7 +20,7 @@ from cybernexvpn.cybernexvpn_bot.bot.keyboards.keyboards import get_first_usage_
     get_devices_keyboard, get_specific_device_keyboard, get_choose_device_type_keyboard, \
     get_post_adding_device_keyboard, get_back_to_main_menu_keyboard, get_servers_keyboard, get_specific_server_keyboard, \
     get_edit_device_keyboard, get_cancel_state_keyboard, get_delete_device_confirmation_keyboard, get_finance_callback, \
-    get_fill_up_balance_values_keyboard, get_payment_url_keyboard
+    get_fill_up_balance_values_keyboard, get_payment_url_keyboard, get_web_panel_keyboard
 from cybernexvpn.cybernexvpn_bot.bot.models import PaymentModel
 from cybernexvpn.cybernexvpn_bot.bot.states import states
 from cybernexvpn.cybernexvpn_bot.bot.utils import new_text_storage
@@ -49,7 +49,7 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_client_data, \
     check_user_balance_for_new_client, edit_safely, delete_message_or_delete_markup, save_payment_to_redis, \
-    generate_invitation_link, get_filename
+    generate_invitation_link, get_filename, send_and_pin
 from cybernexvpn.cybernexvpn_bot.bot.filters import MainMenuFilter
 from cybernexvpn.cybernexvpn_client import schemas
 from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
@@ -67,7 +67,12 @@ logger = logging.getLogger(__name__)
 @dp.message(CommandStart())
 async def welcome_message(message: Message, command: CommandObject):
     user_id = message.chat.id
-    user, created = await get_or_create_user(user_id, message.from_user.username, message)
+    user, created = await get_or_create_user(
+        user_id,
+        message.from_user.username,
+        message.from_user.first_name,
+        message,
+    )
     if not user:
         return
 
@@ -93,6 +98,13 @@ async def welcome_message(message: Message, command: CommandObject):
     else:
         reply_markup = get_main_menu_keyboard()
         text = new_text_storage.MAIN_MENU_TEXT
+
+    if created:
+        await send_and_pin(
+            user_id,
+            new_text_storage.WEB_PANEL_INFO_TEXT,
+            reply_markup=get_web_panel_keyboard(user.token),
+        )
 
     await message.answer(text, reply_markup=reply_markup)
 
@@ -385,16 +397,16 @@ async def handle_reactivate_device_query(
 
     if not client.is_active:
 
-        await call.message.edit_text(
-            text=new_text_storage.REACTIVATING_DEVICE
-        )
-
         user = await get_user(call.from_user.id, call)
         if not user:
             return
 
         if not await check_user_balance_for_new_client(call, user, client):
             return
+
+        await call.message.edit_text(
+            text=new_text_storage.REACTIVATING_DEVICE
+        )
 
         client = await reactivate_client(call.from_user.id, client.id, call)
         if not client:
