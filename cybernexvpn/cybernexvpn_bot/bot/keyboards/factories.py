@@ -3,32 +3,32 @@ from aiogram.filters.callback_data import CallbackData
 from cybernexvpn.cybernexvpn_client.enums import ClientTypeEnum
 
 
-class DevicesCallbackFactory(CallbackData, prefix="devices_callback_factory"):
+class DevicesCallbackFactory(CallbackData, prefix="dcf"):
     callback: str
     id: int
 
 
 class EditDeviceTypeCallbackFactory(
-    CallbackData, prefix="edit_device_type_callback_factory"
+    CallbackData, prefix="edtcf"
 ):
     id: int
     type: ClientTypeEnum
 
 
-class ServersCallbackFactory(CallbackData, prefix="servers_callback_factory"):
+class ServersCallbackFactory(CallbackData, prefix="scf"):
     callback: str
     id: int
 
 
-class FillUpBalanceFactory(CallbackData, prefix="fill_up_balance_factory"):
+class FillUpBalanceFactory(CallbackData, prefix="fubf"):
     value: int
 
 
-class AddDeviceFactory(CallbackData, prefix="add_device_factory"):
+class AddDeviceFactory(CallbackData, prefix="adf"):
     id: int  # server id
     type: ClientTypeEnum | None = None
 
 
-class PostAdditionDeviceFactory(CallbackData, prefix="post_addition_device_factory"):
+class PostAdditionDeviceFactory(CallbackData, prefix="padf"):
     client_id: int
     callback: str
