@@ -46,6 +46,7 @@ from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.servers import (
 from cybernexvpn.cybernexvpn_bot.bot.utils.client_utils.users import (
     get_or_create_user,
     apply_invitation_request, get_user,
+    ensure_user_registered,
 )
 from cybernexvpn.cybernexvpn_bot.bot.utils.common import send_safely, get_client_data, \
     check_user_balance_for_new_client, edit_safely, delete_message_or_delete_markup, save_payment_to_redis, \
@@ -62,6 +63,17 @@ logger = logging.getLogger(__name__)
 
 
 # COMMON FUNCTIONS
+
+
+def _menu_text_for(just_registered: bool) -> str:
+    """Text shown when opening the main menu.
+
+    If the user was just implicitly registered through a non-/start flow, show
+    the servers-lost recovery notice instead of the plain menu text.
+    """
+    if just_registered:
+        return new_text_storage.SERVERS_LOST_RECOVERY_TEXT
+    return new_text_storage.MAIN_MENU_TEXT
 
 
 @dp.message(CommandStart())
@@ -110,16 +122,24 @@ async def welcome_message(message: Message, command: CommandObject):
 
 
 @router.message(Command("menu"))
-async def handle_main_menu_callback(message: Message):
+async def handle_main_menu_command(message: Message):
+    user, created = await ensure_user_registered(message)
+    if not user:
+        return
+
     await message.answer(
-        text=new_text_storage.MAIN_MENU_TEXT,
+        text=_menu_text_for(created),
         reply_markup=get_main_menu_keyboard(),
     )
 
 
 @router.callback_query(MainMenuFilter())
 async def handle_main_menu_callback(call: CallbackQuery):
-    text = new_text_storage.MAIN_MENU_TEXT
+    user, created = await ensure_user_registered(call)
+    if not user:
+        return
+
+    text = _menu_text_for(created)
     keyboard = get_main_menu_keyboard()
 
     if call.data != ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.callback:
@@ -149,8 +169,11 @@ async def handle_main_menu_callback(call: CallbackQuery):
 @router.callback_query(F.data == ButtonsStorage.CANCEL_STATE.callback)
 async def handle_cancel_state_query(call: CallbackQuery, state: FSMContext):
     await state.clear()
+    user, created = await ensure_user_registered(call)
+    if not user:
+        return
     await call.message.edit_text(
-        new_text_storage.MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard()
+        _menu_text_for(created), reply_markup=get_main_menu_keyboard()
     )
 
 
@@ -841,6 +864,10 @@ async def handle_fill_up_balance_factory_query(
 
 @router.callback_query(F.data == ButtonsStorage.PROMO_CODE.callback)
 async def handle_promo_code_query(call: CallbackQuery, state: FSMContext):
+    user, _ = await ensure_user_registered(call)
+    if not user:
+        return
+
     await state.set_state(states.PROMO_CODE_EXPECTING_STATE)
     await state.set_data({"message": call.message})
     await call.message.edit_text(

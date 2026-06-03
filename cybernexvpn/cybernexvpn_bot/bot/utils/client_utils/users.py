@@ -81,6 +81,25 @@ async def get_or_create_user(
     return user, created
 
 
+async def ensure_user_registered(
+    target: CallbackQuery | Message,
+) -> tuple[schemas.User | None, bool]:
+    """Implicitly register the user if they are missing in the DB.
+
+    Use this on every entry point that opens the main menu so an unregistered
+    user gets created instead of being stuck. Returns ``(user, created)`` where
+    ``created`` is ``True`` if the user was just registered through this flow,
+    or ``(None, False)`` if the backend was unavailable (an error message has
+    already been shown).
+    """
+    return await get_or_create_user(
+        target.from_user.id,
+        target.from_user.username,
+        target.from_user.first_name,
+        target,
+    )
+
+
 async def apply_invitation_request(user_id: int, inviter_id: int, call: CallbackQuery | Message) -> bool | None:
     try:
         async with CyberNexVPNClient() as api_client:
