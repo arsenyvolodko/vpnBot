@@ -65,15 +65,27 @@ logger = logging.getLogger(__name__)
 # COMMON FUNCTIONS
 
 
-def _menu_text_for(just_registered: bool) -> str:
-    """Text shown when opening the main menu.
+async def _send_post_registration_onboarding(chat_id: int, user: schemas.User) -> None:
+    """Replicate the post-registration messages from the /start flow:
+    pin the web-panel info, then send the first-usage message."""
+    await send_and_pin(
+        chat_id,
+        new_text_storage.WEB_PANEL_INFO_TEXT,
+        reply_markup=get_web_panel_keyboard(user.token),
+    )
+    await send_safely(
+        chat_id,
+        new_text_storage.FIRST_USAGE_TEXT,
+        reply_markup=get_first_usage_keyboard(),
+    )
 
-    If the user was just implicitly registered through a non-/start flow, show
-    the servers-lost recovery notice instead of the plain menu text.
-    """
-    if just_registered:
-        return new_text_storage.SERVERS_LOST_RECOVERY_TEXT
-    return new_text_storage.MAIN_MENU_TEXT
+
+async def _open_menu_for_new_user(chat_id: int, user: schemas.User) -> None:
+    """For a user implicitly registered through a non-/start flow: send the
+    servers-lost recovery notice as a standalone message (no buttons), then the
+    same onboarding as the /start registration."""
+    await send_safely(chat_id, new_text_storage.SERVERS_LOST_RECOVERY_TEXT)
+    await _send_post_registration_onboarding(chat_id, user)
 
 
 @dp.message(CommandStart())
@@ -105,20 +117,13 @@ async def welcome_message(message: Message, command: CommandObject):
             )
 
     if created:
-        reply_markup = get_first_usage_keyboard()
-        text = new_text_storage.FIRST_USAGE_TEXT
-    else:
-        reply_markup = get_main_menu_keyboard()
-        text = new_text_storage.MAIN_MENU_TEXT
+        await _send_post_registration_onboarding(user_id, user)
+        return
 
-    if created:
-        await send_and_pin(
-            user_id,
-            new_text_storage.WEB_PANEL_INFO_TEXT,
-            reply_markup=get_web_panel_keyboard(user.token),
-        )
-
-    await message.answer(text, reply_markup=reply_markup)
+    await message.answer(
+        new_text_storage.MAIN_MENU_TEXT,
+        reply_markup=get_main_menu_keyboard(),
+    )
 
 
 @router.message(Command("menu"))
@@ -127,8 +132,12 @@ async def handle_main_menu_command(message: Message):
     if not user:
         return
 
+    if created:
+        await _open_menu_for_new_user(message.chat.id, user)
+        return
+
     await message.answer(
-        text=_menu_text_for(created),
+        text=new_text_storage.MAIN_MENU_TEXT,
         reply_markup=get_main_menu_keyboard(),
     )
 
@@ -139,7 +148,11 @@ async def handle_main_menu_callback(call: CallbackQuery):
     if not user:
         return
 
-    text = _menu_text_for(created)
+    if created:
+        await _open_menu_for_new_user(call.from_user.id, user)
+        return
+
+    text = new_text_storage.MAIN_MENU_TEXT
     keyboard = get_main_menu_keyboard()
 
     if call.data != ButtonsStorage.GO_BACK_TO_MAIN_MENU_WITH_NEW_MESSAGE.callback:
@@ -172,8 +185,11 @@ async def handle_cancel_state_query(call: CallbackQuery, state: FSMContext):
     user, created = await ensure_user_registered(call)
     if not user:
         return
+    if created:
+        await _open_menu_for_new_user(call.from_user.id, user)
+        return
     await call.message.edit_text(
-        _menu_text_for(created), reply_markup=get_main_menu_keyboard()
+        new_text_storage.MAIN_MENU_TEXT, reply_markup=get_main_menu_keyboard()
     )
 
 
